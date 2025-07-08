@@ -16,6 +16,7 @@ interface Video {
   snippet: {
     title: string;
     channelTitle: string;
+    channelId: string;
     publishedAt: string;
     thumbnails: {
       medium: {
@@ -358,7 +359,14 @@ export default function Home() {
                   <div className="mt-auto">
                     {/* 채널 정보 */}
                     <div className="d-flex align-items-center mb-2">
-                      <span className="text-primary fw-medium small me-2">{video.snippet.channelTitle}</span>
+                      <a 
+                        href={`https://www.youtube.com/channel/${video.snippet.channelId}`} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-primary fw-medium small me-2 text-decoration-none"
+                      >
+                        🎭 {video.snippet.channelTitle}
+                      </a>
                       <span className="badge bg-light text-dark small">
                         {formatNumber(video.channelStatistics.subscriberCount)} 구독자
                       </span>
