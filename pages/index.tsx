@@ -5,6 +5,7 @@ import Head from 'next/head';
 interface VideoStatistics {
   viewCount: string;
   likeCount: string;
+  commentCount: string;
 }
 
 interface ChannelStatistics {
@@ -55,30 +56,16 @@ const formatDuration = (seconds: number): string => {
   return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
 };
 
-// 게시일을 상대적 시간으로 포맷팅하는 함수
+// 게시일을 실제 날짜로 포맷팅하는 함수
 const formatPublishedAt = (publishedAt: string): string => {
-  const now = new Date();
   const published = new Date(publishedAt);
-  const diffMs = now.getTime() - published.getTime();
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-  const diffMinutes = Math.floor(diffMs / (1000 * 60));
+  const year = published.getFullYear();
+  const month = String(published.getMonth() + 1).padStart(2, '0');
+  const day = String(published.getDate()).padStart(2, '0');
+  const hours = String(published.getHours()).padStart(2, '0');
+  const minutes = String(published.getMinutes()).padStart(2, '0');
   
-  if (diffDays > 365) {
-    const years = Math.floor(diffDays / 365);
-    return `${years}년 전`;
-  } else if (diffDays > 30) {
-    const months = Math.floor(diffDays / 30);
-    return `${months}개월 전`;
-  } else if (diffDays > 0) {
-    return `${diffDays}일 전`;
-  } else if (diffHours > 0) {
-    return `${diffHours}시간 전`;
-  } else if (diffMinutes > 0) {
-    return `${diffMinutes}분 전`;
-  } else {
-    return '방금 전';
-  }
+  return `${year}-${month}-${day} ${hours}:${minutes}`;
 };
 
 // 구독자 대비 조회수 비율 계산 함수
@@ -103,6 +90,31 @@ const calculateViewSubscriberRatio = (viewCount: string, subscriberCount: string
   }
 };
 
+// 참여율 계산 함수 (댓글 수 대비 좋아요 수)
+const calculateEngagementRate = (likeCount: string, commentCount: string): { ratio: number, level: string, color: string } => {
+  const likes = parseInt(likeCount, 10);
+  const comments = parseInt(commentCount, 10);
+  
+  if (comments === 0 || isNaN(likes) || isNaN(comments)) {
+    return { ratio: 0, level: '정보없음', color: 'text-muted' };
+  }
+  
+  const ratio = likes / comments;
+  
+  if (ratio >= 50) {
+    return { ratio, level: '매우 높음', color: 'text-success' };
+  } else if (ratio >= 20) {
+    return { ratio, level: '높음', color: 'text-primary' };
+  } else if (ratio >= 10) {
+    return { ratio, level: '보통', color: 'text-warning' };
+  } else {
+    return { ratio, level: '낮음', color: 'text-danger' };
+  }
+};
+
+type SortField = 'index' | 'title' | 'channelTitle' | 'subscriberCount' | 'publishedAt' | 'duration' | 'viewCount' | 'likeCount' | 'commentCount' | 'viewSubscriberRatio' | 'engagementRate' | 'type';
+type SortOrder = 'asc' | 'desc';
+
 export default function Home() {
   const [query, setQuery] = useState('');
   const [videos, setVideos] = useState<Video[]>([]);
@@ -111,6 +123,90 @@ export default function Home() {
   const [filterType, setFilterType] = useState<'all' | 'shorts' | 'longform'>('all');
   const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'week' | 'month' | 'year'>('all');
   const [lastSearchQuery, setLastSearchQuery] = useState('');
+  const [sortField, setSortField] = useState<SortField>('viewCount');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
+
+  // 정렬 함수
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortOrder('desc');
+    }
+  };
+
+  // 정렬된 비디오 데이터 반환
+  const getSortedVideos = (videosToSort: Video[]) => {
+    return [...videosToSort].sort((a, b) => {
+      let aValue: any, bValue: any;
+      
+      switch (sortField) {
+        case 'title':
+          aValue = a.snippet.title.toLowerCase();
+          bValue = b.snippet.title.toLowerCase();
+          break;
+        case 'channelTitle':
+          aValue = a.snippet.channelTitle.toLowerCase();
+          bValue = b.snippet.channelTitle.toLowerCase();
+          break;
+        case 'subscriberCount':
+          aValue = parseInt(a.channelStatistics.subscriberCount, 10);
+          bValue = parseInt(b.channelStatistics.subscriberCount, 10);
+          break;
+        case 'publishedAt':
+          aValue = new Date(a.snippet.publishedAt).getTime();
+          bValue = new Date(b.snippet.publishedAt).getTime();
+          break;
+        case 'duration':
+          aValue = a.durationInSeconds;
+          bValue = b.durationInSeconds;
+          break;
+        case 'viewCount':
+          aValue = parseInt(a.statistics.viewCount, 10);
+          bValue = parseInt(b.statistics.viewCount, 10);
+          break;
+        case 'likeCount':
+          aValue = parseInt(a.statistics.likeCount, 10);
+          bValue = parseInt(b.statistics.likeCount, 10);
+          break;
+        case 'commentCount':
+          aValue = parseInt(a.statistics.commentCount || '0', 10);
+          bValue = parseInt(b.statistics.commentCount || '0', 10);
+          break;
+        case 'viewSubscriberRatio':
+          aValue = parseInt(a.statistics.viewCount, 10) / parseInt(a.channelStatistics.subscriberCount, 10);
+          bValue = parseInt(b.statistics.viewCount, 10) / parseInt(b.channelStatistics.subscriberCount, 10);
+          break;
+        case 'engagementRate':
+          aValue = parseInt(a.statistics.likeCount, 10) / parseInt(a.statistics.commentCount || '1', 10);
+          bValue = parseInt(b.statistics.likeCount, 10) / parseInt(b.statistics.commentCount || '1', 10);
+          break;
+        case 'type':
+          aValue = a.isShorts ? 0 : 1;
+          bValue = b.isShorts ? 0 : 1;
+          break;
+        default:
+          return 0;
+      }
+      
+      if (isNaN(aValue) && isNaN(bValue)) return 0;
+      if (isNaN(aValue)) return 1;
+      if (isNaN(bValue)) return -1;
+      
+      if (sortOrder === 'asc') {
+        return aValue > bValue ? 1 : aValue < bValue ? -1 : 0;
+      } else {
+        return aValue < bValue ? 1 : aValue > bValue ? -1 : 0;
+      }
+    });
+  };
+
+  // 정렬 표시 아이콘
+  const getSortIcon = (field: SortField) => {
+    if (sortField !== field) return ' ↕️';
+    return sortOrder === 'asc' ? ' ↑' : ' ↓';
+  };
 
   const getPublishedAfterDate = (dateFilter: string): string | null => {
     const now = new Date();
@@ -323,30 +419,103 @@ export default function Home() {
               <tr>
                 <th scope="col" style={{ width: '60px' }}>#</th>
                 <th scope="col" style={{ width: '120px' }}>썸네일</th>
-                <th scope="col" style={{ width: '300px' }}>제목</th>
-                <th scope="col" style={{ width: '120px' }}>채널</th>
-                <th scope="col" style={{ width: '100px' }}>구독자 수</th>
-                <th scope="col" style={{ width: '80px' }}>게시일</th>
-                <th scope="col" style={{ width: '80px' }}>재생 시간</th>
-                <th scope="col" style={{ width: '100px' }}>조회수</th>
-                <th scope="col" style={{ width: '80px' }}>좋아요</th>
-                <th scope="col" style={{ width: '100px' }}>성과 지표</th>
+                <th 
+                  scope="col" 
+                  style={{ width: '300px', cursor: 'pointer' }}
+                  onClick={() => handleSort('title')}
+                >
+                  제목{getSortIcon('title')}
+                </th>
+                <th 
+                  scope="col" 
+                  style={{ width: '120px', cursor: 'pointer' }}
+                  onClick={() => handleSort('channelTitle')}
+                >
+                  채널{getSortIcon('channelTitle')}
+                </th>
+                <th 
+                  scope="col" 
+                  style={{ width: '100px', cursor: 'pointer' }}
+                  onClick={() => handleSort('subscriberCount')}
+                >
+                  구독자 수{getSortIcon('subscriberCount')}
+                </th>
+                <th 
+                  scope="col" 
+                  style={{ width: '140px', cursor: 'pointer' }}
+                  onClick={() => handleSort('publishedAt')}
+                >
+                  게시일{getSortIcon('publishedAt')}
+                </th>
+                <th 
+                  scope="col" 
+                  style={{ width: '80px', cursor: 'pointer' }}
+                  onClick={() => handleSort('duration')}
+                >
+                  재생 시간{getSortIcon('duration')}
+                </th>
+                <th 
+                  scope="col" 
+                  style={{ width: '100px', cursor: 'pointer' }}
+                  onClick={() => handleSort('viewCount')}
+                >
+                  조회수{getSortIcon('viewCount')}
+                </th>
+                <th 
+                  scope="col" 
+                  style={{ width: '80px', cursor: 'pointer' }}
+                  onClick={() => handleSort('likeCount')}
+                >
+                  좋아요{getSortIcon('likeCount')}
+                </th>
+                <th 
+                  scope="col" 
+                  style={{ width: '80px', cursor: 'pointer' }}
+                  onClick={() => handleSort('commentCount')}
+                >
+                  댓글수{getSortIcon('commentCount')}
+                </th>
+                <th 
+                  scope="col" 
+                  style={{ width: '100px', cursor: 'pointer' }}
+                  onClick={() => handleSort('viewSubscriberRatio')}
+                >
+                  성과 지표{getSortIcon('viewSubscriberRatio')}
+                </th>
                 <th scope="col" style={{ width: '80px' }}>성과 레벨</th>
-                <th scope="col" style={{ width: '80px' }}>유형</th>
+                <th 
+                  scope="col" 
+                  style={{ width: '100px', cursor: 'pointer' }}
+                  onClick={() => handleSort('engagementRate')}
+                >
+                  참여율{getSortIcon('engagementRate')}
+                </th>
+                <th scope="col" style={{ width: '80px' }}>참여 레벨</th>
+                <th 
+                  scope="col" 
+                  style={{ width: '80px', cursor: 'pointer' }}
+                  onClick={() => handleSort('type')}
+                >
+                  유형{getSortIcon('type')}
+                </th>
               </tr>
             </thead>
             <tbody>
-              {videos
+              {getSortedVideos(videos
                 .filter(video => {
                   if (filterType === 'all') return true;
                   if (filterType === 'shorts') return video.isShorts;
                   if (filterType === 'longform') return !video.isShorts;
                   return true;
-                })
+                }))
                 .map((video, index) => {
                   const ratioData = calculateViewSubscriberRatio(
                     video.statistics.viewCount, 
                     video.channelStatistics.subscriberCount
+                  );
+                  const engagementData = calculateEngagementRate(
+                    video.statistics.likeCount,
+                    video.statistics.commentCount || '0'
                   );
                   return (
                     <tr key={video.id}>
@@ -407,11 +576,22 @@ export default function Home() {
                         {formatNumber(video.statistics.likeCount)}
                       </td>
                       <td className="text-center fw-bold">
+                        {formatNumber(video.statistics.commentCount || '0')}
+                      </td>
+                      <td className="text-center fw-bold">
                         {ratioData.ratio > 0 ? `${ratioData.ratio.toFixed(1)}배` : '계산불가'}
                       </td>
                       <td className="text-center">
                         <span className={`badge ${ratioData.color.replace('text-', 'bg-')} bg-opacity-10 ${ratioData.color}`}>
                           {ratioData.level}
+                        </span>
+                      </td>
+                      <td className="text-center fw-bold">
+                        {engagementData.ratio > 0 ? `${engagementData.ratio.toFixed(1)}배` : '계산불가'}
+                      </td>
+                      <td className="text-center">
+                        <span className={`badge ${engagementData.color.replace('text-', 'bg-')} bg-opacity-10 ${engagementData.color}`}>
+                          {engagementData.level}
                         </span>
                       </td>
                       <td className="text-center">

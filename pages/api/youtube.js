@@ -62,7 +62,7 @@ export default async function handler(req, res) {
 
     const videoIds = searchItems.map(item => item.id.videoId).join(',');
 
-    // 2. 동영상 상세 정보 호출 (조회수, 좋아요 수, 영상 길이 등)
+    // 2. 동영상 상세 정보 호출 (조회수, 좋아요 수, 댓글 수, 영상 길이 등)
     const videosResponse = await axios.get('https://www.googleapis.com/youtube/v3/videos', {
       params: {
         part: 'snippet,statistics,contentDetails',
