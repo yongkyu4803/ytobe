@@ -286,32 +286,51 @@ export default function Home() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <main className="text-center">
-        <h1 className="mb-4">유튜브 인기 동영상 검색</h1>
-
-        <form onSubmit={searchVideos} className="mb-4">
-          <div className="input-group" style={{ maxWidth: '600px', margin: 'auto' }}>
-            <input
-              type="text"
-              className="form-control"
-              placeholder="검색어를 입력하세요..."
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-            <button type="submit" className="btn btn-primary" disabled={loading}>
-              {loading ? (
-                <>
-                  <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                  <span className="visually-hidden">Loading...</span>
-                </>
-              ) : (
-                '검색'
-              )}
-            </button>
+      <main>
+        <div className="text-center mb-5">
+          <div className="mb-4">
+            <h1 className="display-5 fw-bold text-primary mb-2">YouTube Analytics</h1>
+            <p className="lead text-muted">인기 동영상 검색 및 성과 분석</p>
           </div>
-        </form>
 
-        {videos.length > 0 && (
+          <form onSubmit={searchVideos} className="mb-4">
+            <div className="row justify-content-center">
+              <div className="col-md-8 col-lg-6">
+                <div className="input-group shadow-sm">
+                  <span className="input-group-text bg-white border-end-0">
+                    <i className="text-muted">🔍</i>
+                  </span>
+                  <input
+                    type="text"
+                    className="form-control border-start-0 py-3"
+                    placeholder="검색어를 입력하세요..."
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    style={{ fontSize: '1.1rem' }}
+                  />
+                  <button 
+                    type="submit" 
+                    className="btn btn-primary px-4" 
+                    disabled={loading}
+                    style={{ minWidth: '100px' }}
+                  >
+                    {loading ? (
+                      <>
+                        <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                        <span className="ms-2">검색중...</span>
+                      </>
+                    ) : (
+                      '검색'
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        {/* 컬럼 정렬 기능으로 대체되어 불필요한 필터들 주석 처리 */}
+        {/* {videos.length > 0 && (
           <div className="d-flex justify-content-center gap-3 mb-4">
             <div className="dropdown">
               <button
@@ -409,9 +428,21 @@ export default function Home() {
               </ul>
             </div>
           </div>
-        )}
+        )} */}
 
         {error && <p className="text-danger mt-3">{error}</p>}
+
+        {videos.length > 0 && (
+          <div className="d-flex justify-content-end mb-3">
+            <div className="bg-light rounded-pill px-3 py-2 border">
+              <small className="text-muted">
+                <span className="text-primary fw-semibold">📊 성과지표</span>: 구독자 수 대비 조회수 비율 
+                <span className="text-muted mx-2">•</span>
+                <span className="text-info fw-semibold">💬 참여율</span>: 댓글 수 대비 좋아요 수 비율
+              </small>
+            </div>
+          </div>
+        )}
 
         <div className="table-responsive mt-4">
           <table className="table table-striped table-hover">
