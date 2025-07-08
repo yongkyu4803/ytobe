@@ -80,6 +80,28 @@ const formatPublishedAt = (publishedAt: string): string => {
   }
 };
 
+// 구독자 대비 조회수 비율 계산 함수
+const calculateViewSubscriberRatio = (viewCount: string, subscriberCount: string): { ratio: number, level: string, color: string } => {
+  const views = parseInt(viewCount, 10);
+  const subscribers = parseInt(subscriberCount, 10);
+  
+  if (subscribers === 0 || isNaN(views) || isNaN(subscribers)) {
+    return { ratio: 0, level: '정보없음', color: 'text-muted' };
+  }
+  
+  const ratio = views / subscribers;
+  
+  if (ratio >= 5) {
+    return { ratio, level: '매우 높음', color: 'text-success' };
+  } else if (ratio >= 2) {
+    return { ratio, level: '높음', color: 'text-primary' };
+  } else if (ratio >= 0.5) {
+    return { ratio, level: '보통', color: 'text-warning' };
+  } else {
+    return { ratio, level: '낮음', color: 'text-danger' };
+  }
+};
+
 export default function Home() {
   const [query, setQuery] = useState('');
   const [videos, setVideos] = useState<Video[]>([]);
@@ -326,20 +348,69 @@ export default function Home() {
                     </span>
                   </div>
                 </div>
-                <div className="card-body d-flex flex-column">
-                  <h5 className="card-title small">
-                    <a href={`https://www.youtube.com/watch?v=${video.id}`} target="_blank" rel="noopener noreferrer" className="text-decoration-none text-dark">
+                <div className="card-body d-flex flex-column p-3">
+                  <h5 className="card-title mb-3 lh-sm">
+                    <a href={`https://www.youtube.com/watch?v=${video.id}`} target="_blank" rel="noopener noreferrer" className="text-decoration-none text-dark fw-semibold">
                       {video.snippet.title}
                     </a>
                   </h5>
+                  
                   <div className="mt-auto">
-                    <p className="card-text text-muted small mb-1">{video.snippet.channelTitle}</p>
-                    <p className="card-text text-muted small mb-1">구독자 {formatNumber(video.channelStatistics.subscriberCount)}명</p>
-                    <p className="card-text text-muted small mb-2">{formatPublishedAt(video.snippet.publishedAt)}</p>
-                    <div className="d-flex justify-content-between align-items-center">
-                        <span className="text-danger small">❤️ {formatNumber(video.statistics.likeCount)}</span>
-                        <span className="text-muted small">조회수 {formatNumber(video.statistics.viewCount)}회</span>
+                    {/* 채널 정보 */}
+                    <div className="d-flex align-items-center mb-2">
+                      <span className="text-primary fw-medium small me-2">{video.snippet.channelTitle}</span>
+                      <span className="badge bg-light text-dark small">
+                        {formatNumber(video.channelStatistics.subscriberCount)} 구독자
+                      </span>
                     </div>
+                    
+                    {/* 게시일 */}
+                    <div className="mb-3">
+                      <span className="text-muted small">
+                        📅 {formatPublishedAt(video.snippet.publishedAt)}
+                      </span>
+                    </div>
+                    
+                    {/* 통계 정보 */}
+                    <div className="row g-2 mb-2">
+                      <div className="col-6">
+                        <div className="bg-light rounded p-2 text-center">
+                          <div className="text-muted small mb-1">👁️ 조회수</div>
+                          <div className="fw-bold text-dark small">
+                            {formatNumber(video.statistics.viewCount)}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="col-6">
+                        <div className="bg-light rounded p-2 text-center">
+                          <div className="text-muted small mb-1">❤️ 좋아요</div>
+                          <div className="fw-bold text-dark small">
+                            {formatNumber(video.statistics.likeCount)}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* 구독자 대비 조회수 비율 */}
+                    {(() => {
+                      const ratioData = calculateViewSubscriberRatio(
+                        video.statistics.viewCount, 
+                        video.channelStatistics.subscriberCount
+                      );
+                      return (
+                        <div className="border rounded p-2 text-center">
+                          <div className="text-muted small mb-1">📊 구독자 대비 조회수</div>
+                          <div className="d-flex justify-content-between align-items-center">
+                            <span className="fw-bold small text-dark">
+                              {ratioData.ratio > 0 ? `${ratioData.ratio.toFixed(1)}배` : '계산불가'}
+                            </span>
+                            <span className={`badge ${ratioData.color.replace('text-', 'bg-')} bg-opacity-10 ${ratioData.color} small`}>
+                              {ratioData.level}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
               </div>
