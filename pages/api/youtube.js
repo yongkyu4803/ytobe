@@ -2,7 +2,7 @@
 import axios from 'axios';
 
 export default async function handler(req, res) {
-  const { query } = req.query;
+  const { query, publishedAfter } = req.query;
 
   // 디버깅용 로그
   console.log('API Key exists:', !!process.env.YOUTUBE_API_KEY);
@@ -10,6 +10,7 @@ export default async function handler(req, res) {
   console.log('API Key first 10 chars:', process.env.YOUTUBE_API_KEY?.substring(0, 10));
   console.log('Environment:', process.env.NODE_ENV);
   console.log('Query received:', query);
+  console.log('PublishedAfter received:', publishedAfter);
 
   if (!process.env.YOUTUBE_API_KEY) {
     console.error('YOUTUBE_API_KEY is not set!');
@@ -33,15 +34,25 @@ export default async function handler(req, res) {
 
   try {
     // 1. 검색 API 호출 (결과 50개로 증가)
+    const searchParams = {
+      part: 'snippet',
+      q: query,
+      key: apiKey, // 환경변수 대신 로컬 변수 사용
+      maxResults: 50, 
+      type: 'video',
+      order: 'viewCount',
+    };
+
+    // 날짜 필터가 있으면 추가
+    if (publishedAfter) {
+      searchParams.publishedAfter = publishedAfter;
+      console.log('Adding publishedAfter to search params:', publishedAfter);
+    }
+
+    console.log('Final search params:', searchParams);
+
     const searchResponse = await axios.get('https://www.googleapis.com/youtube/v3/search', {
-      params: {
-        part: 'snippet',
-        q: query,
-        key: apiKey, // 환경변수 대신 로컬 변수 사용
-        maxResults: 50, 
-        type: 'video',
-        order: 'viewCount',
-      },
+      params: searchParams,
     });
 
     const searchItems = searchResponse.data.items;
@@ -51,10 +62,10 @@ export default async function handler(req, res) {
 
     const videoIds = searchItems.map(item => item.id.videoId).join(',');
 
-    // 2. 동영상 상세 정보 호출 (조회수, 좋아요 수 등)
+    // 2. 동영상 상세 정보 호출 (조회수, 좋아요 수, 영상 길이 등)
     const videosResponse = await axios.get('https://www.googleapis.com/youtube/v3/videos', {
       params: {
-        part: 'snippet,statistics',
+        part: 'snippet,statistics,contentDetails',
         id: videoIds,
         key: apiKey, // 환경변수 대신 로컬 변수 사용
       },
@@ -80,10 +91,27 @@ export default async function handler(req, res) {
     );
 
     // 4. 동영상 정보와 채널 정보를 합침
-    const combinedDetails = videoDetails.map(video => ({
-      ...video,
-      channelStatistics: channelStatsMap.get(video.snippet.channelId) || { subscriberCount: '0' },
-    }));
+    const combinedDetails = videoDetails.map(video => {
+      // 영상 길이를 초 단위로 변환하는 함수
+      const parseDuration = (duration) => {
+        const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+        if (!match) return 0;
+        const hours = parseInt(match[1] || 0);
+        const minutes = parseInt(match[2] || 0);
+        const seconds = parseInt(match[3] || 0);
+        return hours * 3600 + minutes * 60 + seconds;
+      };
+
+      const durationInSeconds = parseDuration(video.contentDetails.duration);
+      const isShorts = durationInSeconds <= 60; // 60초 이하는 쇼츠로 판단
+
+      return {
+        ...video,
+        channelStatistics: channelStatsMap.get(video.snippet.channelId) || { subscriberCount: '0' },
+        isShorts,
+        durationInSeconds,
+      };
+    });
 
     // 5. 조회수 기준으로 최종 정렬
     combinedDetails.sort((a, b) => {
