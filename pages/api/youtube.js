@@ -4,9 +4,32 @@ import axios from 'axios';
 export default async function handler(req, res) {
   const { query } = req.query;
 
+  // 디버깅용 로그
+  console.log('API Key exists:', !!process.env.YOUTUBE_API_KEY);
+  console.log('API Key length:', process.env.YOUTUBE_API_KEY?.length);
+  console.log('API Key first 10 chars:', process.env.YOUTUBE_API_KEY?.substring(0, 10));
+  console.log('Environment:', process.env.NODE_ENV);
+  console.log('Query received:', query);
+
+  if (!process.env.YOUTUBE_API_KEY) {
+    console.error('YOUTUBE_API_KEY is not set!');
+    return res.status(500).json({ 
+      message: 'API 키가 설정되지 않았습니다.',
+      debug: {
+        hasApiKey: !!process.env.YOUTUBE_API_KEY,
+        env: process.env.NODE_ENV
+      }
+    });
+  }
+
   if (!query) {
     return res.status(400).json({ message: '검색어를 입력해주세요.' });
   }
+
+  // 임시 테스트용 - 배포 전에 반드시 제거할 것!
+  const apiKey = process.env.YOUTUBE_API_KEY || 'AIzaSyAP91a4OyzrJ0tFUj4AieVn5IMYr_LYiBc';
+  
+  console.log('Using API Key:', apiKey.substring(0, 10) + '...');
 
   try {
     // 1. 검색 API 호출 (결과 50개로 증가)
@@ -14,7 +37,7 @@ export default async function handler(req, res) {
       params: {
         part: 'snippet',
         q: query,
-        key: process.env.YOUTUBE_API_KEY,
+        key: apiKey, // 환경변수 대신 로컬 변수 사용
         maxResults: 50, 
         type: 'video',
         order: 'viewCount',
@@ -33,7 +56,7 @@ export default async function handler(req, res) {
       params: {
         part: 'snippet,statistics',
         id: videoIds,
-        key: process.env.YOUTUBE_API_KEY,
+        key: apiKey, // 환경변수 대신 로컬 변수 사용
       },
     });
 
@@ -48,7 +71,7 @@ export default async function handler(req, res) {
       params: {
         part: 'statistics',
         id: channelIds,
-        key: process.env.YOUTUBE_API_KEY,
+        key: apiKey, // 환경변수 대신 로컬 변수 사용
       },
     });
 
