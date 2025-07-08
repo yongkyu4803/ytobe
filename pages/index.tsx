@@ -317,113 +317,115 @@ export default function Home() {
 
         {error && <p className="text-danger mt-3">{error}</p>}
 
-        <div className="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 g-4 mt-4">
-          {videos
-            .filter(video => {
-              if (filterType === 'all') return true;
-              if (filterType === 'shorts') return video.isShorts;
-              if (filterType === 'longform') return !video.isShorts;
-              return true;
-            })
-            .map((video) => (
-            <div key={video.id} className="col">
-              <div className="card h-100">
-                <div className="position-relative">
-                  <a href={`https://www.youtube.com/watch?v=${video.id}`} target="_blank" rel="noopener noreferrer">
-                    <img 
-                      src={video.snippet.thumbnails.medium.url} 
-                      className="card-img-top" 
-                      alt={video.snippet.title} 
-                    />
-                  </a>
-                  <div className="position-absolute top-0 start-0 p-2">
-                    {video.isShorts ? (
-                      <span className="badge bg-danger">쇼츠</span>
-                    ) : (
-                      <span className="badge bg-primary">롱폼</span>
-                    )}
-                  </div>
-                  <div className="position-absolute bottom-0 end-0 p-2">
-                    <span className="badge bg-dark bg-opacity-75">
-                      {formatDuration(video.durationInSeconds)}
-                    </span>
-                  </div>
-                </div>
-                <div className="card-body d-flex flex-column p-3">
-                  <h5 className="card-title mb-3 lh-sm">
-                    <a href={`https://www.youtube.com/watch?v=${video.id}`} target="_blank" rel="noopener noreferrer" className="text-decoration-none text-dark fw-semibold">
-                      {video.snippet.title}
-                    </a>
-                  </h5>
-                  
-                  <div className="mt-auto">
-                    {/* 채널 정보 */}
-                    <div className="d-flex align-items-center mb-2">
-                      <a 
-                        href={`https://www.youtube.com/channel/${video.snippet.channelId}`} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-primary fw-medium small me-2 text-decoration-none"
-                      >
-                        🎭 {video.snippet.channelTitle}
-                      </a>
-                      <span className="badge bg-light text-dark small">
-                        {formatNumber(video.channelStatistics.subscriberCount)} 구독자
-                      </span>
-                    </div>
-                    
-                    {/* 게시일 */}
-                    <div className="mb-3">
-                      <span className="text-muted small">
-                        📅 {formatPublishedAt(video.snippet.publishedAt)}
-                      </span>
-                    </div>
-                    
-                    {/* 통계 정보 */}
-                    <div className="row g-2 mb-2">
-                      <div className="col-6">
-                        <div className="bg-light rounded p-2 text-center">
-                          <div className="text-muted small mb-1">👁️ 조회수</div>
-                          <div className="fw-bold text-dark small">
-                            {formatNumber(video.statistics.viewCount)}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="col-6">
-                        <div className="bg-light rounded p-2 text-center">
-                          <div className="text-muted small mb-1">❤️ 좋아요</div>
-                          <div className="fw-bold text-dark small">
-                            {formatNumber(video.statistics.likeCount)}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {/* 구독자 대비 조회수 비율 */}
-                    {(() => {
-                      const ratioData = calculateViewSubscriberRatio(
-                        video.statistics.viewCount, 
-                        video.channelStatistics.subscriberCount
-                      );
-                      return (
-                        <div className="border rounded p-2 text-center">
-                          <div className="text-muted small mb-1">📊 구독자 대비 조회수</div>
-                          <div className="d-flex justify-content-between align-items-center">
-                            <span className="fw-bold small text-dark">
-                              {ratioData.ratio > 0 ? `${ratioData.ratio.toFixed(1)}배` : '계산불가'}
-                            </span>
-                            <span className={`badge ${ratioData.color.replace('text-', 'bg-')} bg-opacity-10 ${ratioData.color} small`}>
-                              {ratioData.level}
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })()}
-                  </div>
-                </div>
-              </div>
-            </div>
-            ))}
+        <div className="table-responsive mt-4">
+          <table className="table table-striped table-hover">
+            <thead className="table-dark">
+              <tr>
+                <th scope="col" style={{ width: '60px' }}>#</th>
+                <th scope="col" style={{ width: '120px' }}>썸네일</th>
+                <th scope="col" style={{ width: '300px' }}>제목</th>
+                <th scope="col" style={{ width: '120px' }}>채널</th>
+                <th scope="col" style={{ width: '100px' }}>구독자 수</th>
+                <th scope="col" style={{ width: '80px' }}>게시일</th>
+                <th scope="col" style={{ width: '80px' }}>재생 시간</th>
+                <th scope="col" style={{ width: '100px' }}>조회수</th>
+                <th scope="col" style={{ width: '80px' }}>좋아요</th>
+                <th scope="col" style={{ width: '100px' }}>성과 지표</th>
+                <th scope="col" style={{ width: '80px' }}>성과 레벨</th>
+                <th scope="col" style={{ width: '80px' }}>유형</th>
+              </tr>
+            </thead>
+            <tbody>
+              {videos
+                .filter(video => {
+                  if (filterType === 'all') return true;
+                  if (filterType === 'shorts') return video.isShorts;
+                  if (filterType === 'longform') return !video.isShorts;
+                  return true;
+                })
+                .map((video, index) => {
+                  const ratioData = calculateViewSubscriberRatio(
+                    video.statistics.viewCount, 
+                    video.channelStatistics.subscriberCount
+                  );
+                  return (
+                    <tr key={video.id}>
+                      <td className="text-center">{index + 1}</td>
+                      <td>
+                        <a href={`https://www.youtube.com/watch?v=${video.id}`} target="_blank" rel="noopener noreferrer">
+                          <img 
+                            src={video.snippet.thumbnails.medium.url} 
+                            alt={video.snippet.title}
+                            className="img-thumbnail"
+                            style={{ width: '80px', height: '60px', objectFit: 'cover' }}
+                          />
+                        </a>
+                      </td>
+                      <td>
+                        <a 
+                          href={`https://www.youtube.com/watch?v=${video.id}`} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="text-decoration-none text-dark fw-semibold"
+                          style={{ 
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden'
+                          }}
+                        >
+                          {video.snippet.title}
+                        </a>
+                      </td>
+                      <td>
+                        <a 
+                          href={`https://www.youtube.com/channel/${video.snippet.channelId}`} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-primary text-decoration-none fw-medium small"
+                        >
+                          {video.snippet.channelTitle}
+                        </a>
+                      </td>
+                      <td className="text-center">
+                        <span className="badge bg-light text-dark">
+                          {formatNumber(video.channelStatistics.subscriberCount)}
+                        </span>
+                      </td>
+                      <td className="text-center text-muted small">
+                        {formatPublishedAt(video.snippet.publishedAt)}
+                      </td>
+                      <td className="text-center">
+                        <span className="badge bg-secondary">
+                          {formatDuration(video.durationInSeconds)}
+                        </span>
+                      </td>
+                      <td className="text-center fw-bold">
+                        {formatNumber(video.statistics.viewCount)}
+                      </td>
+                      <td className="text-center fw-bold">
+                        {formatNumber(video.statistics.likeCount)}
+                      </td>
+                      <td className="text-center fw-bold">
+                        {ratioData.ratio > 0 ? `${ratioData.ratio.toFixed(1)}배` : '계산불가'}
+                      </td>
+                      <td className="text-center">
+                        <span className={`badge ${ratioData.color.replace('text-', 'bg-')} bg-opacity-10 ${ratioData.color}`}>
+                          {ratioData.level}
+                        </span>
+                      </td>
+                      <td className="text-center">
+                        {video.isShorts ? (
+                          <span className="badge bg-danger">쇼츠</span>
+                        ) : (
+                          <span className="badge bg-primary">롱폼</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+            </tbody>
+          </table>
         </div>
       </main>
     </div>
