@@ -2,6 +2,30 @@ import { useState } from 'react';
 import axios from 'axios';
 import Head from 'next/head';
 
+interface VideoStatistics {
+  viewCount: string;
+  likeCount: string;
+}
+
+interface ChannelStatistics {
+  subscriberCount: string;
+}
+
+interface Video {
+  id: string;
+  snippet: {
+    title: string;
+    channelTitle: string;
+    thumbnails: {
+      medium: {
+        url: string;
+      };
+    };
+  };
+  statistics: VideoStatistics;
+  channelStatistics: ChannelStatistics;
+}
+
 // 숫자를 천 단위 콤마와 '만', '억' 단위로 포맷팅하는 함수
 const formatNumber = (numStr: string) => {
   const num = parseInt(numStr, 10);
@@ -17,7 +41,7 @@ const formatNumber = (numStr: string) => {
 
 export default function Home() {
   const [query, setQuery] = useState('');
-  const [videos, setVideos] = useState([]);
+  const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -37,7 +61,7 @@ export default function Home() {
       if (!response.data.items || response.data.items.length === 0) {
         setError('검색 결과가 없습니다.');
       }
-    } catch (err) {
+    } catch (err: any) {
       const message = err.response?.data?.message || '영상을 불러오는 데 실패했습니다. API 키 할당량을 확인해주세요.';
       setError(message);
       console.error(err);
