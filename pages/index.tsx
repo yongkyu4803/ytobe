@@ -3,7 +3,7 @@ import axios from 'axios';
 import Head from 'next/head';
 
 // 숫자를 천 단위 콤마와 '만', '억' 단위로 포맷팅하는 함수
-const formatNumber = (numStr) => {
+const formatNumber = (numStr: string) => {
   const num = parseInt(numStr, 10);
   if (isNaN(num)) return '0';
   if (num >= 100000000) {
