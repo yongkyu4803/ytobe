@@ -125,6 +125,32 @@ export default function Home() {
   const [lastSearchQuery, setLastSearchQuery] = useState('');
   const [sortField, setSortField] = useState<SortField>('viewCount');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [password, setPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+
+  const CORRECT_PASSWORD = 'sm3232';
+
+  // 컴포넌트 마운트 시 세션 스토리지에서 인증 상태 확인
+  useEffect(() => {
+    const storedAuth = sessionStorage.getItem('isAuthenticated');
+    if (storedAuth === 'true') {
+      setIsAuthenticated(true);
+    }
+  }, []);
+
+  // 비밀번호 검증 함수
+  const handlePasswordSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (password === CORRECT_PASSWORD) {
+      setIsAuthenticated(true);
+      sessionStorage.setItem('isAuthenticated', 'true');
+      setPasswordError('');
+    } else {
+      setPasswordError('비밀번호가 올바르지 않습니다.');
+      setPassword('');
+    }
+  };
 
   // 정렬 함수
   const handleSort = (field: SortField) => {
@@ -277,6 +303,56 @@ export default function Home() {
       performSearch(lastSearchQuery, dateFilter);
     }
   }, [dateFilter]);
+
+  // 인증되지 않은 경우 비밀번호 입력 화면 표시
+  if (!isAuthenticated) {
+    return (
+      <div className="container-fluid">
+        <Head>
+          <title>YouTube Analytics - 로그인</title>
+          <meta name="description" content="YouTube Analytics 접근을 위한 인증이 필요합니다." />
+          <link rel="icon" href="/favicon.ico" />
+        </Head>
+
+        <div className="d-flex justify-content-center align-items-center min-vh-100">
+          <div className="card shadow-lg" style={{ width: '400px' }}>
+            <div className="card-body p-5">
+              <div className="text-center mb-4">
+                <h2 className="text-primary fw-bold mb-2">🔐 YouTube Analytics</h2>
+                <p className="text-muted">접근하려면 비밀번호를 입력하세요</p>
+              </div>
+              
+              <form onSubmit={handlePasswordSubmit}>
+                <div className="mb-3">
+                  <input
+                    type="password"
+                    className={`form-control form-control-lg ${passwordError ? 'is-invalid' : ''}`}
+                    placeholder="비밀번호를 입력하세요"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    autoFocus
+                  />
+                  {passwordError && (
+                    <div className="invalid-feedback">
+                      {passwordError}
+                    </div>
+                  )}
+                </div>
+                
+                <button 
+                  type="submit" 
+                  className="btn btn-primary btn-lg w-100"
+                  disabled={!password.trim()}
+                >
+                  접속하기
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container-fluid mt-5 px-4">
