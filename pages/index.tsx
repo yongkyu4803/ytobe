@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, FormEvent } from 'react';
 import axios from 'axios';
 import Head from 'next/head';
 
@@ -45,7 +45,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const searchVideos = async (e) => {
+  const searchVideos = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!query.trim()) {
       setError('검색어를 입력해주세요.');
