@@ -205,7 +205,12 @@ export class SmartRecommendationEngine {
       const videos = response.data.items || [];
       
       // 시간당 조회수 증가율이 높은 동영상 계산
-      const scoredVideos = videos.map((video: Video) => {
+      interface ScoredVideo extends Video {
+        score: number;
+        hoursOld: number;
+      }
+
+      const scoredVideos: ScoredVideo[] = videos.map((video: Video) => {
         const publishedTime = new Date(video.snippet.publishedAt).getTime();
         const hoursOld = (Date.now() - publishedTime) / (1000 * 60 * 60);
         const viewCount = parseInt(video.statistics.viewCount, 10);
@@ -219,9 +224,9 @@ export class SmartRecommendationEngine {
       });
 
       return scoredVideos
-        .sort((a, b) => b.score - a.score)
+        .sort((a: ScoredVideo, b: ScoredVideo) => b.score - a.score)
         .slice(0, 15)
-        .map(({ score, hoursOld, ...video }) => video);
+        .map(({ score, hoursOld, ...video }) => video as Video);
         
     } catch (error) {
       console.error('급상승 예측 실패:', error);
