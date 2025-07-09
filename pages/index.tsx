@@ -1,6 +1,7 @@
 import { useState, FormEvent, useEffect } from 'react';
 import axios from 'axios';
 import Head from 'next/head';
+import Layout from '../components/Layout';
 
 interface VideoStatistics {
   viewCount: string;
@@ -355,55 +356,52 @@ export default function Home() {
   }
 
   return (
-    <div className="container-fluid mt-5 px-4">
+    <Layout>
       <Head>
-        <title>유튜브 인기 동영상 검색</title>
-        <meta name="description" content="조회수 높은 유튜브 동영상을 검색하고 확인하세요." />
+        <title>키워드 검색 - YouTube Analytics</title>
+        <meta name="description" content="키워드로 YouTube 인기 동영상을 검색하고 성과를 분석하세요." />
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <main>
-        <div className="text-center mb-5">
-          <div className="mb-4">
-            <h1 className="display-5 fw-bold text-primary mb-2">YouTube Analytics</h1>
-            <p className="lead text-muted">인기 동영상 검색 및 성과 분석</p>
-          </div>
+      <div className="text-center mb-5">
+        <h2 className="display-6 fw-bold text-primary mb-2">🔍 키워드 검색</h2>
+        <p className="lead text-muted">원하는 키워드로 YouTube 동영상을 검색하고 상세 분석을 확인하세요</p>
+      </div>
 
-          <form onSubmit={searchVideos} className="mb-4">
-            <div className="row justify-content-center">
-              <div className="col-md-8 col-lg-6">
-                <div className="input-group shadow-sm">
-                  <span className="input-group-text bg-white border-end-0">
-                    <i className="text-muted">🔍</i>
-                  </span>
-                  <input
-                    type="text"
-                    className="form-control border-start-0 py-3"
-                    placeholder="검색어를 입력하세요..."
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    style={{ fontSize: '1.1rem' }}
-                  />
-                  <button 
-                    type="submit" 
-                    className="btn btn-primary px-4" 
-                    disabled={loading}
-                    style={{ minWidth: '100px' }}
-                  >
-                    {loading ? (
-                      <>
-                        <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                        <span className="ms-2">검색중...</span>
-                      </>
-                    ) : (
-                      '검색'
-                    )}
-                  </button>
-                </div>
-              </div>
+      <form onSubmit={searchVideos} className="mb-4">
+        <div className="row justify-content-center">
+          <div className="col-md-8 col-lg-6">
+            <div className="input-group shadow-sm">
+              <span className="input-group-text bg-white border-end-0">
+                <i className="text-muted">🔍</i>
+              </span>
+              <input
+                type="text"
+                className="form-control border-start-0 py-3"
+                placeholder="검색어를 입력하세요..."
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                style={{ fontSize: '1.1rem' }}
+              />
+              <button 
+                type="submit" 
+                className="btn btn-primary px-4" 
+                disabled={loading}
+                style={{ minWidth: '100px' }}
+              >
+                {loading ? (
+                  <>
+                    <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                    <span className="ms-2">검색중...</span>
+                  </>
+                ) : (
+                  '검색'
+                )}
+              </button>
             </div>
-          </form>
+          </div>
         </div>
+      </form>
 
         {/* 컬럼 정렬 기능으로 대체되어 불필요한 필터들 주석 처리 */}
         {/* {videos.length > 0 && (
@@ -714,7 +712,6 @@ export default function Home() {
             </tbody>
           </table>
         </div>
-      </main>
-    </div>
+    </Layout>
   );
 }
