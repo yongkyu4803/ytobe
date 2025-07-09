@@ -332,83 +332,83 @@ export default function TrendingPage() {
             <table className="table table-striped table-hover">
               <thead className="table-dark">
                 <tr>
-                  <th scope="col" style={{ width: '60px' }}>#</th>
-                  <th scope="col" style={{ width: '120px' }}>썸네일</th>
+                  <th scope="col" style={{ width: '60px', minWidth: '60px', whiteSpace: 'nowrap' }}>#</th>
+                  <th scope="col" style={{ width: '120px', minWidth: '120px', whiteSpace: 'nowrap' }}>썸네일</th>
                   <th 
                     scope="col" 
-                    style={{ width: '300px', cursor: 'pointer' }}
+                    style={{ width: '400px', minWidth: '300px', cursor: 'pointer' }}
                     onClick={() => handleSort('title')}
                   >
                     제목{getSortIcon('title')}
                   </th>
                   <th 
                     scope="col" 
-                    style={{ width: '120px', cursor: 'pointer' }}
+                    style={{ width: '140px', minWidth: '120px', cursor: 'pointer', whiteSpace: 'nowrap' }}
                     onClick={() => handleSort('channelTitle')}
                   >
                     채널{getSortIcon('channelTitle')}
                   </th>
                   <th 
                     scope="col" 
-                    style={{ width: '100px', cursor: 'pointer' }}
+                    style={{ width: '130px', minWidth: '110px', cursor: 'pointer', whiteSpace: 'nowrap' }}
                     onClick={() => handleSort('subscriberCount')}
                   >
-                    구독자 수{getSortIcon('subscriberCount')}
+                    구독자수{getSortIcon('subscriberCount')}
                   </th>
                   <th 
                     scope="col" 
-                    style={{ width: '140px', cursor: 'pointer' }}
+                    style={{ width: '170px', minWidth: '150px', cursor: 'pointer', whiteSpace: 'nowrap' }}
                     onClick={() => handleSort('publishedAt')}
                   >
                     게시일{getSortIcon('publishedAt')}
                   </th>
                   <th 
                     scope="col" 
-                    style={{ width: '80px', cursor: 'pointer' }}
+                    style={{ width: '110px', minWidth: '100px', cursor: 'pointer', whiteSpace: 'nowrap' }}
                     onClick={() => handleSort('duration')}
                   >
-                    재생 시간{getSortIcon('duration')}
+                    재생시간{getSortIcon('duration')}
                   </th>
                   <th 
                     scope="col" 
-                    style={{ width: '100px', cursor: 'pointer' }}
+                    style={{ width: '120px', minWidth: '100px', cursor: 'pointer', whiteSpace: 'nowrap' }}
                     onClick={() => handleSort('viewCount')}
                   >
                     조회수{getSortIcon('viewCount')}
                   </th>
                   <th 
                     scope="col" 
-                    style={{ width: '80px', cursor: 'pointer' }}
+                    style={{ width: '100px', minWidth: '90px', cursor: 'pointer', whiteSpace: 'nowrap' }}
                     onClick={() => handleSort('likeCount')}
                   >
                     좋아요{getSortIcon('likeCount')}
                   </th>
                   <th 
                     scope="col" 
-                    style={{ width: '80px', cursor: 'pointer' }}
+                    style={{ width: '100px', minWidth: '90px', cursor: 'pointer', whiteSpace: 'nowrap' }}
                     onClick={() => handleSort('commentCount')}
                   >
                     댓글수{getSortIcon('commentCount')}
                   </th>
                   <th 
                     scope="col" 
-                    style={{ width: '100px', cursor: 'pointer' }}
+                    style={{ width: '120px', minWidth: '110px', cursor: 'pointer', whiteSpace: 'nowrap' }}
                     onClick={() => handleSort('viewSubscriberRatio')}
                   >
-                    성과 지표{getSortIcon('viewSubscriberRatio')}
+                    성과지표{getSortIcon('viewSubscriberRatio')}
                   </th>
-                  <th scope="col" style={{ width: '80px' }}>성과 레벨</th>
+                  <th scope="col" style={{ width: '110px', minWidth: '100px', whiteSpace: 'nowrap' }}>성과레벨</th>
                   <th 
                     scope="col" 
-                    style={{ width: '100px', cursor: 'pointer' }}
+                    style={{ width: '110px', minWidth: '100px', cursor: 'pointer', whiteSpace: 'nowrap' }}
                     onClick={() => handleSort('engagementRate')}
                   >
                     참여율{getSortIcon('engagementRate')}
                   </th>
-                  <th scope="col" style={{ width: '80px' }}>참여 레벨</th>
+                  <th scope="col" style={{ width: '110px', minWidth: '100px', whiteSpace: 'nowrap' }}>참여레벨</th>
                   <th 
                     scope="col" 
-                    style={{ width: '80px', cursor: 'pointer' }}
+                    style={{ width: '90px', minWidth: '80px', cursor: 'pointer', whiteSpace: 'nowrap' }}
                     onClick={() => handleSort('type')}
                   >
                     유형{getSortIcon('type')}

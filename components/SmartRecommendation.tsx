@@ -141,9 +141,9 @@ const SmartRecommendation: React.FC<SmartRecommendationProps> = ({
         </p>
       </div>
 
-      <div className="row g-3">
+      <div className="row g-4">
         {smartRecommendations.map(recommendation => (
-          <div key={recommendation.id} className="col-md-6 col-lg-3">
+          <div key={recommendation.id} className="col-md-6 col-xl-3">
             <div className="card h-100 border-0 shadow-sm">
               <div className="card-body text-center">
                 <h6 className={`text-${recommendation.color} fw-bold mb-2`}>

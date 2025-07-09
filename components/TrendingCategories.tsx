@@ -52,9 +52,9 @@ const TrendingCategories: React.FC<TrendingCategoriesProps> = ({
 
       {/* 기본 카테고리 */}
       <div className="mb-3">
-        <div className="row g-2">
+        <div className="row g-3">
           {basicCategories.map(category => (
-            <div key={category.id} className="col-md-4 col-lg-3">
+            <div key={category.id} className="col-md-6 col-lg-4 col-xl-3">
               <button
                 className={`btn w-100 text-start ${
                   activeCategory === category.id 
@@ -80,9 +80,9 @@ const TrendingCategories: React.FC<TrendingCategoriesProps> = ({
         <div className="mb-3">
           <hr className="my-3" />
           <h6 className="text-muted mb-3">🎯 고급 카테고리</h6>
-          <div className="row g-2">
+          <div className="row g-3">
             {advancedCategories.map(category => (
-              <div key={category.id} className="col-md-4 col-lg-3">
+              <div key={category.id} className="col-md-6 col-lg-4 col-xl-3">
                 <button
                   className={`btn w-100 text-start ${
                     activeCategory === category.id 
