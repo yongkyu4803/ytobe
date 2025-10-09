@@ -1,6 +1,7 @@
 import { ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
+import NotificationDropdown from './NotificationDropdown';
 
 interface LayoutProps {
   children: ReactNode;
@@ -19,6 +20,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               <h1 className="h4 mb-0 fw-bold">🎯 YouTube Analytics</h1>
               <small className="text-light opacity-75">인기 동영상 검색 및 성과 분석</small>
             </div>
+            <div className="col-auto">
+              <NotificationDropdown />
+            </div>
           </div>
         </div>
       </header>
@@ -36,6 +40,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               <li className="nav-item">
                 <Link href="/trending" className={`nav-link ${router.pathname === '/trending' ? 'active' : ''}`}>
                   🎯 인기 추천
+                </Link>
+              </li>
+              <li className="nav-item">
+                <Link href="/favorites" className={`nav-link ${router.pathname === '/favorites' ? 'active' : ''}`}>
+                  ⭐ 즐겨찾기
                 </Link>
               </li>
               <li className="nav-item">

@@ -2,6 +2,7 @@ import { useState, FormEvent, useEffect } from 'react';
 import axios from 'axios';
 import Head from 'next/head';
 import Layout from '../components/Layout';
+import FavoriteButton from '../components/FavoriteButton';
 
 interface VideoStatistics {
   viewCount: string;
@@ -524,20 +525,21 @@ export default function Home() {
               <tr>
                 <th scope="col" style={{ width: '60px', minWidth: '60px', whiteSpace: 'nowrap' }}>#</th>
                 <th scope="col" style={{ width: '120px', minWidth: '120px', whiteSpace: 'nowrap' }}>썸네일</th>
-                <th 
-                  scope="col" 
+                <th
+                  scope="col"
                   style={{ width: '400px', minWidth: '300px', cursor: 'pointer' }}
                   onClick={() => handleSort('title')}
                 >
                   제목{getSortIcon('title')}
                 </th>
-                <th 
-                  scope="col" 
+                <th
+                  scope="col"
                   style={{ width: '140px', minWidth: '120px', cursor: 'pointer', whiteSpace: 'nowrap' }}
                   onClick={() => handleSort('channelTitle')}
                 >
                   채널{getSortIcon('channelTitle')}
                 </th>
+                <th scope="col" style={{ width: '80px', minWidth: '70px', whiteSpace: 'nowrap' }}>즐겨찾기</th>
                 <th 
                   scope="col" 
                   style={{ width: '130px', minWidth: '110px', cursor: 'pointer', whiteSpace: 'nowrap' }}
@@ -652,14 +654,22 @@ export default function Home() {
                         </a>
                       </td>
                       <td>
-                        <a 
-                          href={`https://www.youtube.com/channel/${video.snippet.channelId}`} 
-                          target="_blank" 
+                        <a
+                          href={`https://www.youtube.com/channel/${video.snippet.channelId}`}
+                          target="_blank"
                           rel="noopener noreferrer"
                           className="text-primary text-decoration-none fw-medium small"
                         >
                           {video.snippet.channelTitle}
                         </a>
+                      </td>
+                      <td className="text-center">
+                        <FavoriteButton
+                          channelId={video.snippet.channelId}
+                          channelTitle={video.snippet.channelTitle}
+                          subscriberCount={video.channelStatistics.subscriberCount}
+                          size="sm"
+                        />
                       </td>
                       <td className="text-center">
                         <span className="badge bg-light text-dark">
