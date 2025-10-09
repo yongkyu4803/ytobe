@@ -3,12 +3,16 @@ import Head from 'next/head';
 import axios from 'axios';
 import Layout from '../components/Layout';
 import FavoriteButton from '../components/FavoriteButton';
+import FolderManager from '../components/FolderManager';
 import {
   getFavoriteChannels,
   updateChannelLastChecked,
   addNotification,
+  moveChannelToFolder,
+  getFolders,
   type FavoriteChannel,
-} from '../utils/favoriteStorage';
+  type FavoriteFolder,
+} from '../utils/supabaseFavorites';
 
 interface Video {
   id: string;
@@ -38,19 +42,50 @@ interface Video {
 export default function FavoritesPage() {
   const [favoriteChannels, setFavoriteChannels] = useState<FavoriteChannel[]>([]);
   const [selectedChannel, setSelectedChannel] = useState<FavoriteChannel | null>(null);
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
+  const [folders, setFolders] = useState<FavoriteFolder[]>([]);
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [checkingNewVideos, setCheckingNewVideos] = useState(false);
+  const [showFolderSelector, setShowFolderSelector] = useState(false);
+  const [movingChannelId, setMovingChannelId] = useState<string | null>(null);
 
-  // 즐겨찾기 채널 목록 로드
+  // 폴더 및 채널 목록 로드
   useEffect(() => {
+    loadFolders();
     loadFavoriteChannels();
   }, []);
 
-  const loadFavoriteChannels = () => {
-    const channels = getFavoriteChannels();
+  // 선택된 폴더가 변경되면 채널 목록 다시 로드
+  useEffect(() => {
+    loadFavoriteChannels();
+  }, [selectedFolderId]);
+
+  const loadFolders = async () => {
+    const data = await getFolders();
+    setFolders(data);
+  };
+
+  const loadFavoriteChannels = async () => {
+    const channels = await getFavoriteChannels(selectedFolderId || undefined);
     setFavoriteChannels(channels);
+  };
+
+  const handleFolderSelect = (folderId: string | null) => {
+    setSelectedFolderId(folderId);
+    setSelectedChannel(null);
+  };
+
+  const handleMoveChannel = async (channelId: string, targetFolderId: string | null) => {
+    const success = await moveChannelToFolder(channelId, targetFolderId);
+    if (success) {
+      await loadFavoriteChannels();
+      setShowFolderSelector(false);
+      setMovingChannelId(null);
+    } else {
+      alert('채널 이동에 실패했습니다.');
+    }
   };
 
   // 특정 채널의 영상 조회
@@ -74,7 +109,7 @@ export default function FavoritesPage() {
       }
 
       // 마지막 확인 시간 업데이트
-      updateChannelLastChecked(channel.channelId);
+      await updateChannelLastChecked(channel.channelId);
     } catch (err: any) {
       const message = err.response?.data?.message || '영상을 불러오는 데 실패했습니다.';
       setError(message);
@@ -109,8 +144,8 @@ export default function FavoritesPage() {
         const newVideos = response.data.items || [];
 
         // 새 영상이 있으면 알림 추가
-        newVideos.forEach((video: Video) => {
-          const success = addNotification({
+        for (const video of newVideos) {
+          const success = await addNotification({
             videoId: video.id,
             videoTitle: video.snippet.title,
             channelId: video.snippet.channelId,
@@ -120,10 +155,10 @@ export default function FavoritesPage() {
           });
 
           if (success) totalNewVideos++;
-        });
+        }
 
         // 마지막 확인 시간 업데이트
-        updateChannelLastChecked(channel.channelId);
+        await updateChannelLastChecked(channel.channelId);
       }
 
       loadFavoriteChannels(); // 상태 갱신
@@ -178,18 +213,28 @@ export default function FavoritesPage() {
         <p className="lead text-muted">즐겨찾는 채널의 새로운 영상을 빠르게 확인하세요</p>
       </div>
 
+      {/* 상단: 폴더 목록 */}
+      <div className="mb-4">
+        <FolderManager
+          selectedFolderId={selectedFolderId}
+          onSelectFolder={handleFolderSelect}
+        />
+      </div>
+
       {favoriteChannels.length === 0 ? (
         <div className="text-center py-5">
           <div style={{ fontSize: '5rem', opacity: 0.2 }}>⭐</div>
-          <h4 className="text-muted mt-3">즐겨찾기에 등록된 채널이 없습니다</h4>
+          <h4 className="text-muted mt-3">
+            {selectedFolderId ? '이 폴더에 채널이 없습니다' : '즐겨찾기에 등록된 채널이 없습니다'}
+          </h4>
           <p className="text-muted">
             검색 결과나 추천 페이지에서 채널 옆의 ⭐ 버튼을 눌러 즐겨찾기를 추가하세요
           </p>
         </div>
       ) : (
         <div className="row">
-          {/* 왼쪽: 채널 목록 */}
-          <div className="col-md-4 mb-4">
+          {/* 왼쪽: 채널 목록 (30%) */}
+          <div className="col-md-3 mb-4">
             <div className="card shadow-sm">
               <div className="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                 <h5 className="mb-0">채널 목록 ({favoriteChannels.length})</h5>
@@ -226,13 +271,26 @@ export default function FavoritesPage() {
                           구독자 {formatNumber(channel.subscriberCount)}
                         </small>
                       </div>
-                      <FavoriteButton
-                        channelId={channel.channelId}
-                        channelTitle={channel.channelTitle}
-                        subscriberCount={channel.subscriberCount}
-                        size="sm"
-                        onToggle={() => loadFavoriteChannels()}
-                      />
+                      <div className="d-flex gap-1">
+                        <button
+                          className="btn btn-sm btn-outline-secondary"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setMovingChannelId(channel.channelId);
+                            setShowFolderSelector(true);
+                          }}
+                          title="폴더 이동"
+                        >
+                          📁
+                        </button>
+                        <FavoriteButton
+                          channelId={channel.channelId}
+                          channelTitle={channel.channelTitle}
+                          subscriberCount={channel.subscriberCount}
+                          size="sm"
+                          onToggle={() => loadFavoriteChannels()}
+                        />
+                      </div>
                     </div>
                     {channel.lastChecked && (
                       <small className={selectedChannel?.channelId === channel.channelId ? 'text-white-50' : 'text-muted'}>
@@ -245,8 +303,8 @@ export default function FavoritesPage() {
             </div>
           </div>
 
-          {/* 오른쪽: 선택된 채널의 영상 목록 */}
-          <div className="col-md-8">
+          {/* 오른쪽: 선택된 채널의 영상 목록 (70%) */}
+          <div className="col-md-9">
             {selectedChannel ? (
               <div className="card shadow-sm">
                 <div className="card-header bg-light">
@@ -269,7 +327,7 @@ export default function FavoritesPage() {
                   ) : (
                     <div className="row g-3">
                       {videos.map((video) => (
-                        <div key={video.id} className="col-md-6">
+                        <div key={video.id} className="col-md-3">
                           <div className="card h-100 shadow-sm hover-shadow">
                             <a
                               href={`https://www.youtube.com/watch?v=${video.id}`}
@@ -326,6 +384,66 @@ export default function FavoritesPage() {
             )}
           </div>
         </div>
+      )}
+
+      {/* 폴더 선택 모달 */}
+      {showFolderSelector && movingChannelId && (
+        <>
+          <div
+            className="modal-backdrop fade show"
+            onClick={() => {
+              setShowFolderSelector(false);
+              setMovingChannelId(null);
+            }}
+            style={{ zIndex: 1040 }}
+          />
+          <div
+            className="modal fade show d-block"
+            tabIndex={-1}
+            style={{ zIndex: 1050 }}
+          >
+            <div className="modal-dialog modal-dialog-centered">
+              <div className="modal-content">
+                <div className="modal-header">
+                  <h5 className="modal-title">폴더 선택</h5>
+                  <button
+                    type="button"
+                    className="btn-close"
+                    onClick={() => {
+                      setShowFolderSelector(false);
+                      setMovingChannelId(null);
+                    }}
+                  />
+                </div>
+                <div className="modal-body">
+                  <p className="text-muted mb-3">채널을 이동할 폴더를 선택하세요</p>
+                  <div className="list-group">
+                    <button
+                      className="list-group-item list-group-item-action"
+                      onClick={() => handleMoveChannel(movingChannelId, null)}
+                    >
+                      <span className="me-2">📂</span>
+                      <strong>미분류</strong>
+                    </button>
+                    {folders.map((folder) => (
+                      <button
+                        key={folder.id}
+                        className="list-group-item list-group-item-action"
+                        onClick={() => handleMoveChannel(movingChannelId, folder.id)}
+                      >
+                        <span className="me-2">{folder.icon}</span>
+                        <strong>{folder.name}</strong>
+                        {folder.description && (
+                          <small className="d-block text-muted">{folder.description}</small>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
       )}
 
       <style jsx>{`

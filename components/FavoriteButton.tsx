@@ -3,7 +3,7 @@ import {
   isFavoriteChannel,
   addFavoriteChannel,
   removeFavoriteChannel,
-} from '../utils/favoriteStorage';
+} from '../utils/supabaseFavorites';
 
 interface FavoriteButtonProps {
   channelId: string;
@@ -25,32 +25,44 @@ export default function FavoriteButton({
   onToggle,
 }: FavoriteButtonProps) {
   const [isFavorite, setIsFavorite] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    setIsFavorite(isFavoriteChannel(channelId));
+    const checkFavorite = async () => {
+      const result = await isFavoriteChannel(channelId);
+      setIsFavorite(result);
+    };
+    checkFavorite();
   }, [channelId]);
 
-  const handleToggle = (e: React.MouseEvent) => {
+  const handleToggle = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
 
-    if (isFavorite) {
-      const success = removeFavoriteChannel(channelId);
-      if (success) {
-        setIsFavorite(false);
-        onToggle?.(false);
+    if (isLoading) return;
+    setIsLoading(true);
+
+    try {
+      if (isFavorite) {
+        const success = await removeFavoriteChannel(channelId);
+        if (success) {
+          setIsFavorite(false);
+          onToggle?.(false);
+        }
+      } else {
+        const success = await addFavoriteChannel({
+          channelId,
+          channelTitle,
+          channelThumbnail,
+          subscriberCount,
+        });
+        if (success) {
+          setIsFavorite(true);
+          onToggle?.(true);
+        }
       }
-    } else {
-      const success = addFavoriteChannel({
-        channelId,
-        channelTitle,
-        channelThumbnail,
-        subscriberCount,
-      });
-      if (success) {
-        setIsFavorite(true);
-        onToggle?.(true);
-      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -71,6 +83,7 @@ export default function FavoriteButton({
       onClick={handleToggle}
       className={`btn ${isFavorite ? 'btn-warning' : 'btn-outline-warning'} ${sizeClasses[size]}`}
       title={isFavorite ? '즐겨찾기 해제' : '즐겨찾기 추가'}
+      disabled={isLoading}
       style={{
         display: 'flex',
         alignItems: 'center',
@@ -78,10 +91,14 @@ export default function FavoriteButton({
         whiteSpace: 'nowrap'
       }}
     >
-      <span style={{ fontSize: iconSizes[size] }}>
-        {isFavorite ? '⭐' : '☆'}
-      </span>
-      {showText && (
+      {isLoading ? (
+        <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true" />
+      ) : (
+        <span style={{ fontSize: iconSizes[size] }}>
+          {isFavorite ? '⭐' : '☆'}
+        </span>
+      )}
+      {showText && !isLoading && (
         <span className="ms-1">
           {isFavorite ? '즐겨찾기 해제' : '즐겨찾기'}
         </span>

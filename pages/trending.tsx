@@ -4,6 +4,7 @@ import Head from 'next/head';
 import Layout from '../components/Layout';
 import TrendingCategories from '../components/TrendingCategories';
 import SmartRecommendation from '../components/SmartRecommendation';
+import FavoriteButton from '../components/FavoriteButton';
 
 interface VideoStatistics {
   viewCount: string;
@@ -406,13 +407,14 @@ export default function TrendingPage() {
                     참여율{getSortIcon('engagementRate')}
                   </th>
                   <th scope="col" style={{ width: '110px', minWidth: '100px', whiteSpace: 'nowrap' }}>참여레벨</th>
-                  <th 
-                    scope="col" 
+                  <th
+                    scope="col"
                     style={{ width: '90px', minWidth: '80px', cursor: 'pointer', whiteSpace: 'nowrap' }}
                     onClick={() => handleSort('type')}
                   >
                     유형{getSortIcon('type')}
                   </th>
+                  <th scope="col" style={{ width: '100px', minWidth: '100px', whiteSpace: 'nowrap' }}>즐겨찾기</th>
                 </tr>
               </thead>
               <tbody>
@@ -508,6 +510,15 @@ export default function TrendingPage() {
                         ) : (
                           <span className="badge bg-primary">롱폼</span>
                         )}
+                      </td>
+                      <td className="text-center">
+                        <FavoriteButton
+                          channelId={video.snippet.channelId}
+                          channelTitle={video.snippet.channelTitle}
+                          channelThumbnail={video.snippet.thumbnails.medium.url}
+                          subscriberCount={video.channelStatistics.subscriberCount}
+                          size="sm"
+                        />
                       </td>
                     </tr>
                   );

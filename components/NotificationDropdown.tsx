@@ -7,7 +7,7 @@ import {
   markAllNotificationsAsRead,
   clearAllNotifications,
   type VideoNotification,
-} from '../utils/favoriteStorage';
+} from '../utils/supabaseFavorites';
 
 export default function NotificationDropdown() {
   const [notifications, setNotifications] = useState<VideoNotification[]>([]);
@@ -15,9 +15,11 @@ export default function NotificationDropdown() {
   const [showDropdown, setShowDropdown] = useState(false);
 
   // 알림 데이터 로드
-  const loadNotifications = () => {
-    setNotifications(getNotifications());
-    setUnreadCount(getUnreadNotificationCount());
+  const loadNotifications = async () => {
+    const notifs = await getNotifications();
+    const count = await getUnreadNotificationCount();
+    setNotifications(notifs);
+    setUnreadCount(count);
   };
 
   useEffect(() => {
@@ -28,21 +30,21 @@ export default function NotificationDropdown() {
     return () => clearInterval(interval);
   }, []);
 
-  const handleNotificationClick = (videoId: string) => {
-    markNotificationAsRead(videoId);
-    loadNotifications();
+  const handleNotificationClick = async (videoId: string) => {
+    await markNotificationAsRead(videoId);
+    await loadNotifications();
     setShowDropdown(false);
   };
 
-  const handleMarkAllAsRead = () => {
-    markAllNotificationsAsRead();
-    loadNotifications();
+  const handleMarkAllAsRead = async () => {
+    await markAllNotificationsAsRead();
+    await loadNotifications();
   };
 
-  const handleClearAll = () => {
+  const handleClearAll = async () => {
     if (confirm('모든 알림을 삭제하시겠습니까?')) {
-      clearAllNotifications();
-      loadNotifications();
+      await clearAllNotifications();
+      await loadNotifications();
     }
   };
 
