@@ -40,6 +40,19 @@ interface Video {
   durationInSeconds: number;
 }
 
+interface FullSyncProgress {
+  id: string;
+  status: 'queued' | 'running' | 'completed';
+  total: number;
+  completed: number;
+  succeeded: number;
+  failed: number;
+  skipped: number;
+  pending: number;
+  running: number;
+  retrying: number;
+}
+
 export default function FavoritesPage() {
   const [favoriteChannels, setFavoriteChannels] = useState<FavoriteChannel[]>([]);
   const [selectedChannel, setSelectedChannel] = useState<FavoriteChannel | null>(null);
@@ -53,6 +66,7 @@ export default function FavoritesPage() {
   const [statusVersion, setStatusVersion] = useState(0);
   const [folderVersion, setFolderVersion] = useState(0);
   const [checkingNewVideos, setCheckingNewVideos] = useState(false);
+  const [syncProgress, setSyncProgress] = useState<FullSyncProgress | null>(null);
   const [showFolderSelector, setShowFolderSelector] = useState(false);
   const [movingChannelId, setMovingChannelId] = useState<string | null>(null);
 
@@ -133,16 +147,30 @@ export default function FavoritesPage() {
     setLoading(false);
   };
 
-  // Run the next due batch; the scheduler continues independently of this page.
+  // Start or resume a full sweep. The scheduler continues the same database batch if this page closes.
   const checkAllNewVideos = async () => {
     setCheckingNewVideos(true);
-    setSyncMessage('수집할 채널을 확인하고 있습니다.');
+    setSyncProgress(null);
+    setSyncMessage('전체 채널 수집을 준비하고 있습니다.');
     try {
-      const response = await axios.post('/api/collection/run');
-      const results = response.data.results || [];
-      const succeeded = results.filter((r: {status: string}) => r.status === 'success').length;
-      const failed = results.filter((r: {status: string}) => r.status === 'failed').length;
-      setSyncMessage(results.length ? `${succeeded}개 채널 수집 완료${failed ? `, ${failed}개 실패. 자동으로 재시도합니다.` : '.'} 나머지 대상은 예약 순서대로 수집합니다.` : '현재 수집 예정 시각이 된 채널이 없습니다.');
+      let response = await axios.post('/api/collection/run', { action: 'startAll' });
+      let progress = response.data.status as FullSyncProgress;
+      const fullSyncId = response.data.fullSyncId as string;
+      setSyncProgress(progress);
+
+      for (let batch = 0; progress.status !== 'completed' && batch < 100; batch += 1) {
+        setSyncMessage(`${progress.completed} / ${progress.total}개 채널 수집 완료${progress.retrying ? ` · ${progress.retrying}개 재시도 대기` : ''}`);
+        await new Promise(resolve => setTimeout(resolve, 500));
+        response = await axios.post('/api/collection/run', { action: 'continueAll', fullSyncId });
+        progress = response.data.status as FullSyncProgress;
+        setSyncProgress(progress);
+      }
+
+      if (progress.status === 'completed') {
+        setSyncMessage(`전체 수집 완료 · 성공 ${progress.succeeded}개${progress.failed ? ` · 실패 ${progress.failed}개` : ''}${progress.skipped ? ` · 제외 ${progress.skipped}개` : ''}`);
+      } else {
+        setSyncMessage(`${progress.completed} / ${progress.total}개 처리됨 · 남은 작업은 자동 수집이 계속 진행합니다.`);
+      }
       await loadFavoriteChannels();
       if (selectedChannel) await loadChannelVideos(selectedChannel);
     } catch (err: unknown) {
@@ -183,7 +211,25 @@ export default function FavoritesPage() {
       {/* 상단: 폴더 목록 */}
       <div className="mb-4">
         <CollectionStatus refreshKey={statusVersion} />
-        {syncMessage && <p className="alert alert-info" role="status">{syncMessage}</p>}
+        {syncMessage && (
+          <div className="alert alert-info" role="status">
+            <p className="mb-0">{syncMessage}</p>
+            {syncProgress && syncProgress.total > 0 && (
+              <div className="progress mt-2" aria-label="전체 채널 수집 진행률">
+                <div
+                  className="progress-bar"
+                  role="progressbar"
+                  style={{ width: `${Math.round((syncProgress.completed / syncProgress.total) * 100)}%` }}
+                  aria-valuenow={syncProgress.completed}
+                  aria-valuemin={0}
+                  aria-valuemax={syncProgress.total}
+                >
+                  {syncProgress.completed}/{syncProgress.total}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         <FolderManager
           selectedFolderId={selectedFolderId}
@@ -215,16 +261,16 @@ export default function FavoritesPage() {
                   className="btn btn-sm btn-light"
                   onClick={checkAllNewVideos}
                   disabled={checkingNewVideos}
-                  title="수집 예정 시각이 된 채널을 최대 3개 수집"
+                  title="즐겨찾기 전체 채널을 3개씩 순차 수집"
                   aria-busy={checkingNewVideos}
                 >
                   {checkingNewVideos ? (
                     <>
                       <span className="spinner-border spinner-border-sm me-1" />
-                      확인 중...
+                      전체 수집 중...
                     </>
                   ) : (
-                    <>수집 실행</>
+                    <>전체 수집</>
                   )}
                 </button>
               </div>

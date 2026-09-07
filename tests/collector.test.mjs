@@ -49,3 +49,9 @@ test('transport errors do not expose API key',async()=>{
  const yt=youtubeClient('private-api-key',async()=>{throw Error('url with private-api-key');});
  await assert.rejects(yt.get('channels',{}),e=>!e.message.includes('private-api-key')&&e.code==='network_timeout');
 });
+test('full sweep uses the batch claimant',async()=>{
+ const calls=[];const db={async rpc(name,args){calls.push([name,args]);return {data:[]};}};
+ const out=await runCollection(db,'test',{fullSyncId:'00000000-0000-4000-8000-000000000001',delayMs:0});
+ assert.deepEqual(out,[]);assert.equal(calls[0][0],'youtube_app_claim_full_sync');
+ assert.equal(calls[0][1].p_full_sync_id,'00000000-0000-4000-8000-000000000001');
+});

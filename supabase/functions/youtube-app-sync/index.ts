@@ -11,8 +11,19 @@ Deno.serve(async (request: Request) => {
     auth:{persistSession:false,autoRefreshToken:false},
   });
   try {
-    const results = await runCollection(db, key, {limit:3});
-    return Response.json({results}, {status:results.some(r=>r.status==='failed')?207:200});
+    const body = await request.json().catch(() => ({}));
+    const requestedId = typeof body?.fullSyncId === 'string' ? body.fullSyncId : null;
+    if(requestedId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(requestedId)) {
+      return Response.json({error:'Invalid full collection id'}, {status:400});
+    }
+    let fullSyncId = requestedId;
+    if(!fullSyncId) {
+      const active = await db.rpc('youtube_app_active_full_sync');
+      if(active.error) throw active.error;
+      fullSyncId = active.data || null;
+    }
+    const results = await runCollection(db, key, {limit:3,fullSyncId,delayMs:fullSyncId?500:0});
+    return Response.json({results,fullSyncId}, {status:results.some(r=>r.status==='failed')?207:200});
   } catch {
     return Response.json({error:'Collection could not start'}, {status:500});
   }

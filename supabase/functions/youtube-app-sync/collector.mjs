@@ -81,12 +81,15 @@ export async function collectChannel(channelId, startedAt, youtube) {
   }
   return {channel,videos};
 }
-export async function runCollection(db, apiKey, {limit=3, fetcher=fetch}={}) {
-  const claimed = await db.rpc('youtube_app_claim_sync',{p_limit:limit});
+export async function runCollection(db, apiKey, {limit=3, fetcher=fetch, fullSyncId=null, delayMs=0}={}) {
+  const claimed = fullSyncId
+    ? await db.rpc('youtube_app_claim_full_sync',{p_full_sync_id:fullSyncId,p_limit:limit})
+    : await db.rpc('youtube_app_claim_sync',{p_limit:limit});
   if (claimed.error) throw new CollectionError('claim_failed','Could not claim collection work');
   const results=[];
   // Sequential channels keep API pressure bounded; channel leases allow parallel invocations safely.
-  for(const run of claimed.data || []) {
+  for(const [index,run] of (claimed.data || []).entries()) {
+    if(index>0 && delayMs>0) await new Promise(resolve=>setTimeout(resolve,delayMs));
     const youtube=youtubeClient(apiKey,fetcher);
     try {
       const {channel,videos}=await collectChannel(run.channel_id,run.started_at,youtube);

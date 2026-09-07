@@ -2,6 +2,7 @@
 BEGIN;
 DO $$
 DECLARE r record; r2 record; result jsonb; snapshots integer; caught boolean:=false;
+  full_batch jsonb; full_id uuid; claimed_count integer;
 BEGIN
   INSERT INTO public.youtube_app_favorite_channels(channel_id,channel_title,subscriber_count,added_at)
     VALUES('test-channel','테스트',null,now()-interval '1 day');
@@ -54,6 +55,29 @@ BEGIN
     FROM public.youtube_app_video_metric_snapshots WHERE video_id='test-video';
   IF NOT EXISTS(SELECT 1 FROM public.youtube_app_video_growth WHERE video_id='test-video' AND view_delta=30 AND elapsed_hours=3 AND views_per_hour=10)
     THEN RAISE EXCEPTION 'growth must use actual measured interval'; END IF;
+
+  INSERT INTO public.youtube_app_favorite_channels(channel_id,channel_title,subscriber_count,added_at)
+    VALUES('full-a','전체 A',null,now()),('full-b','전체 B',null,now()),('full-c','전체 C',null,now());
+  UPDATE public.youtube_app_channels SET next_sync_at=now() WHERE channel_id IN ('test-channel','full-a','full-b','full-c');
+  full_batch:=public.youtube_app_start_full_sync();
+  full_id:=(full_batch->>'id')::uuid;
+  IF (full_batch->>'total')::integer<>4 THEN RAISE EXCEPTION 'full sync snapshot count'; END IF;
+  IF EXISTS(SELECT 1 FROM public.youtube_app_claim_sync(1)) THEN RAISE EXCEPTION 'scheduled claim stole full sync channel'; END IF;
+  SELECT count(*) INTO claimed_count FROM public.youtube_app_claim_full_sync(full_id,3);
+  IF claimed_count<>3 THEN RAISE EXCEPTION 'full sync batch size'; END IF;
+  UPDATE public.youtube_app_sync_runs SET status='success',finished_at=now()
+    WHERE full_sync_id=full_id AND status='running';
+  SELECT * INTO r FROM public.youtube_app_claim_full_sync(full_id,3);
+  IF r.run_id IS NULL THEN RAISE EXCEPTION 'full sync final channel missing'; END IF;
+  UPDATE public.youtube_app_sync_runs SET status='failed',finished_at=now(),error_code='network_timeout',error_message='retry'
+    WHERE id=r.run_id;
+  IF (public.youtube_app_full_sync_status(full_id)->>'retrying')::integer<>1 THEN RAISE EXCEPTION 'full sync retry missing'; END IF;
+  SELECT * INTO r FROM public.youtube_app_claim_full_sync(full_id,3);
+  UPDATE public.youtube_app_sync_runs SET status='success',finished_at=now() WHERE id=r.run_id;
+  result:=public.youtube_app_full_sync_status(full_id);
+  IF result->>'status'<>'completed' OR (result->>'succeeded')::integer<>4 THEN RAISE EXCEPTION 'full sync did not complete'; END IF;
+  DELETE FROM public.youtube_app_favorite_channels WHERE channel_id IN ('full-a','full-b','full-c');
+
   UPDATE public.youtube_app_channels SET next_sync_at=now() WHERE channel_id='test-channel';
   SELECT * INTO r FROM public.youtube_app_claim_sync(1);
   UPDATE public.youtube_app_sync_runs SET started_at=now()-interval '11 minutes' WHERE id=r.run_id;
@@ -71,6 +95,8 @@ SET LOCAL ROLE anon;
 SELECT count(*) FROM public.youtube_app_channels;
 DO $$ BEGIN
   BEGIN PERFORM public.youtube_app_claim_sync(1); RAISE EXCEPTION 'anon claim allowed';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  BEGIN PERFORM public.youtube_app_start_full_sync(); RAISE EXCEPTION 'anon full sync allowed';
   EXCEPTION WHEN insufficient_privilege THEN NULL; END;
   BEGIN INSERT INTO public.youtube_app_channels(channel_id,title) VALUES('forbidden','forbidden'); RAISE EXCEPTION 'anon write allowed';
   EXCEPTION WHEN insufficient_privilege THEN NULL; END;
