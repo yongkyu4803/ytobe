@@ -5,17 +5,20 @@ import {
   updateFolder,
   deleteFolder,
   getFolderChannelCount,
+  getFavoriteChannelCount,
   type FavoriteFolder,
 } from '../utils/supabaseFavorites';
 
 interface FolderManagerProps {
   onSelectFolder: (folderId: string | null) => void;
   selectedFolderId: string | null;
+  refreshKey?: number;
 }
 
-export default function FolderManager({ onSelectFolder, selectedFolderId }: FolderManagerProps) {
+export default function FolderManager({ onSelectFolder, selectedFolderId, refreshKey = 0 }: FolderManagerProps) {
   const [folders, setFolders] = useState<FavoriteFolder[]>([]);
   const [folderCounts, setFolderCounts] = useState<Record<string, number>>({});
+  const [totalCount, setTotalCount] = useState(0);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingFolder, setEditingFolder] = useState<FavoriteFolder | null>(null);
   const [newFolderName, setNewFolderName] = useState('');
@@ -25,11 +28,12 @@ export default function FolderManager({ onSelectFolder, selectedFolderId }: Fold
 
   useEffect(() => {
     loadFolders();
-  }, []);
+  }, [refreshKey]);
 
   const loadFolders = async () => {
     const data = await getFolders();
     setFolders(data);
+    setTotalCount(await getFavoriteChannelCount());
 
     // 각 폴더의 채널 개수 로드
     const counts: Record<string, number> = {};
@@ -135,7 +139,7 @@ export default function FolderManager({ onSelectFolder, selectedFolderId }: Fold
           >
             📚 전체
             <span className="badge bg-light text-dark ms-2">
-              {Object.values(folderCounts).reduce((sum, count) => sum + count, 0)}
+              {totalCount}
             </span>
           </button>
 

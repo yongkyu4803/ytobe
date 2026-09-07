@@ -133,6 +133,23 @@ export async function deleteFolder(folderId: string): Promise<boolean> {
 }
 
 /**
+ * 미분류 채널을 포함한 전체 즐겨찾기 채널 개수 조회
+ */
+export async function getFavoriteChannelCount(): Promise<number> {
+  try {
+    const { count, error } = await supabase
+      .from('youtube_app_favorite_channels')
+      .select('*', { count: 'exact', head: true });
+
+    if (error) throw error;
+    return count || 0;
+  } catch (error) {
+    console.error('전체 채널 개수 조회 실패:', error);
+    return 0;
+  }
+}
+
+/**
  * 특정 폴더의 채널 개수 조회
  */
 export async function getFolderChannelCount(folderId: string): Promise<number> {

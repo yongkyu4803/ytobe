@@ -51,6 +51,7 @@ export default function FavoritesPage() {
   const [collectionNote, setCollectionNote] = useState('');
   const [syncMessage, setSyncMessage] = useState('');
   const [statusVersion, setStatusVersion] = useState(0);
+  const [folderVersion, setFolderVersion] = useState(0);
   const [checkingNewVideos, setCheckingNewVideos] = useState(false);
   const [showFolderSelector, setShowFolderSelector] = useState(false);
   const [movingChannelId, setMovingChannelId] = useState<string | null>(null);
@@ -76,6 +77,12 @@ export default function FavoritesPage() {
     setFavoriteChannels(channels);
   };
 
+  // 폴더 배지는 마운트 시 한 번만 세므로, 채널이 바뀌면 다시 세도록 알린다.
+  const reloadAfterChannelChange = async () => {
+    await loadFavoriteChannels();
+    setFolderVersion(v => v + 1);
+  };
+
   const handleFolderSelect = (folderId: string | null) => {
     setSelectedFolderId(folderId);
     setSelectedChannel(null);
@@ -84,7 +91,7 @@ export default function FavoritesPage() {
   const handleMoveChannel = async (channelId: string, targetFolderId: string | null) => {
     const success = await moveChannelToFolder(channelId, targetFolderId);
     if (success) {
-      await loadFavoriteChannels();
+      await reloadAfterChannelChange();
       setShowFolderSelector(false);
       setMovingChannelId(null);
     } else {
@@ -181,10 +188,11 @@ export default function FavoritesPage() {
         <FolderManager
           selectedFolderId={selectedFolderId}
           onSelectFolder={handleFolderSelect}
+          refreshKey={folderVersion}
         />
       </div>
 
-      <AddChannelForm folderId={selectedFolderId} onAdded={loadFavoriteChannels} />
+      <AddChannelForm folderId={selectedFolderId} onAdded={reloadAfterChannelChange} />
 
       {favoriteChannels.length === 0 ? (
         <div className="text-center py-5">
@@ -254,7 +262,7 @@ export default function FavoritesPage() {
                           channelTitle={channel.channelTitle}
                           subscriberCount={channel.subscriberCount}
                           size="sm"
-                          onToggle={() => loadFavoriteChannels()}
+                          onToggle={() => reloadAfterChannelChange()}
                         />
                       </div>
                     </div>
