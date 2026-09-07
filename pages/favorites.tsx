@@ -7,6 +7,7 @@ import FavoriteButton from '../components/FavoriteButton';
 import FolderManager from '../components/FolderManager';
 import CollectionStatus from '../components/CollectionStatus';
 import AddChannelForm from '../components/AddChannelForm';
+import GqaiIcon from '../components/GqaiIcon';
 import {
   getFavoriteChannels,
   moveChannelToFolder,
@@ -346,49 +347,40 @@ export default function FavoritesPage() {
                       <p>영상이 없습니다</p>
                     </div>
                   ) : (
-                    <div className="row g-3">
+                    <div className="video-list" role="list">
                       {videos.map((video) => (
-                        <div key={video.id} className="col-md-3">
-                          <div className="card h-100 shadow-sm hover-shadow">
-                            <a
-                              href={`https://www.youtube.com/watch?v=${video.id}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-decoration-none"
-                            >
+                        <a
+                          key={video.id}
+                          href={`https://www.youtube.com/watch?v=${video.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="video-list-item"
+                          role="listitem"
+                          aria-label={`${video.snippet.title} YouTube에서 보기`}
+                        >
+                          <div className="video-list-thumbnail">
+                            <span className="video-thumbnail-fallback">영상</span>
                               <img
                                 src={video.snippet.thumbnails.medium.url}
                                 alt={video.snippet.title}
-                                className="card-img-top"
-                                style={{ height: '180px', objectFit: 'cover' }}
+                              loading="lazy"
+                              onError={(event) => { event.currentTarget.hidden = true; }}
                               />
-                              <div className="card-body">
-                                <h6
-                                  className="card-title text-dark"
-                                  style={{
-                                    display: '-webkit-box',
-                                    WebkitLineClamp: 2,
-                                    WebkitBoxOrient: 'vertical',
-                                    overflow: 'hidden',
-                                  }}
-                                >
-                                  {video.snippet.title}
-                                </h6>
-                                <div className="d-flex justify-content-between align-items-center mt-2">
-                                  <small className="text-muted">
-                                    👁️ {formatNumber(video.statistics.viewCount)}
-                                  </small>
-                                  <small className="text-muted">
-                                    {formatDate(video.snippet.publishedAt)}
-                                  </small>
-                                </div>
-                                {video.isShorts && (
-                                  <span className="badge bg-danger mt-2">쇼츠</span>
-                                )}
-                              </div>
-                            </a>
+                            {video.isShorts && <span className="video-type-badge">쇼츠</span>}
                           </div>
-                        </div>
+                          <div className="video-list-content">
+                            <h6>{video.snippet.title}</h6>
+                            <div className="video-list-meta">
+                              <span>조회 {formatNumber(video.statistics.viewCount)}</span>
+                              <span>좋아요 {formatNumber(video.statistics.likeCount)}</span>
+                              <span>댓글 {formatNumber(video.statistics.commentCount)}</span>
+                              <time dateTime={video.snippet.publishedAt}>{formatDate(video.snippet.publishedAt)}</time>
+                            </div>
+                          </div>
+                          <span className="video-list-open" aria-hidden="true">
+                            <GqaiIcon name="action-external-link" size={20} />
+                          </span>
+                        </a>
                       ))}
                     </div>
                   )}
@@ -483,11 +475,115 @@ export default function FavoritesPage() {
             width: 65%;
           }
         }
-        .hover-shadow {
-          transition: box-shadow 0.3s ease;
+        .video-list {
+          border: 1px solid var(--gqai-hairline);
+          border-radius: var(--gqai-radius-lg);
+          overflow: hidden;
         }
-        .hover-shadow:hover {
-          box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+        .video-list-item {
+          display: grid;
+          grid-template-columns: 168px minmax(0, 1fr) 36px;
+          align-items: center;
+          gap: var(--gqai-space-4);
+          min-height: 118px;
+          padding: var(--gqai-space-3);
+          color: var(--gqai-ink);
+          background: var(--gqai-canvas);
+          border-bottom: 1px solid var(--gqai-hairline-cool);
+          transition: background-color 0.15s ease, border-color 0.15s ease;
+        }
+        .video-list-item:last-child {
+          border-bottom: 0;
+        }
+        .video-list-item:hover {
+          color: var(--gqai-ink);
+          background: var(--gqai-canvas-soft);
+        }
+        .video-list-item:focus-visible {
+          position: relative;
+          z-index: 1;
+          outline-offset: -3px;
+        }
+        .video-list-thumbnail {
+          position: relative;
+          aspect-ratio: 16 / 9;
+          display: grid;
+          place-items: center;
+          overflow: hidden;
+          color: var(--gqai-ink-mute);
+          background: var(--gqai-canvas-soft);
+          border: 1px solid var(--gqai-hairline);
+          border-radius: var(--gqai-radius-md);
+        }
+        .video-list-thumbnail img {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+        .video-thumbnail-fallback {
+          font-size: 12px;
+          letter-spacing: 0.03em;
+        }
+        .video-type-badge {
+          position: absolute;
+          right: var(--gqai-space-2);
+          bottom: var(--gqai-space-2);
+          z-index: 1;
+          padding: 3px 6px;
+          color: var(--gqai-on-dark);
+          background: var(--gqai-canvas-night);
+          border-radius: var(--gqai-radius-xs);
+          font-size: 11px;
+          font-weight: 500;
+        }
+        .video-list-content {
+          min-width: 0;
+        }
+        .video-list-content h6 {
+          margin: 0 0 var(--gqai-space-3);
+          color: var(--gqai-ink);
+          font-size: 16px;
+          line-height: 1.45;
+          overflow-wrap: anywhere;
+        }
+        .video-list-meta {
+          display: flex;
+          flex-wrap: wrap;
+          gap: var(--gqai-space-2) var(--gqai-space-4);
+          color: var(--gqai-ink-mute);
+          font-size: 12px;
+          line-height: 1.45;
+        }
+        .video-list-open {
+          display: grid;
+          place-items: center;
+          width: 36px;
+          height: 36px;
+          color: var(--gqai-ink-mute);
+        }
+        .video-list-item:hover .video-list-open {
+          color: var(--gqai-ink);
+        }
+        @media (max-width: 767px) {
+          .video-list-item {
+            grid-template-columns: 112px minmax(0, 1fr);
+            gap: var(--gqai-space-3);
+            min-height: 88px;
+            padding: var(--gqai-space-2);
+          }
+          .video-list-content h6 {
+            margin-bottom: var(--gqai-space-2);
+            font-size: 14px;
+          }
+          .video-list-meta {
+            gap: var(--gqai-space-1) var(--gqai-space-2);
+            font-size: 11px;
+          }
+          .video-list-open {
+            display: none;
+          }
         }
       `}</style>
     </Layout>
