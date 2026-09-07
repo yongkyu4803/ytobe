@@ -35,6 +35,18 @@ export interface VideoNotification {
   notifiedAt: string;
 }
 
+async function mutate<T = unknown>(action: string, payload: Record<string, unknown> = {}): Promise<T | null> {
+  const response = await fetch('/api/personal-data', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action, payload }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.message || '데이터를 변경하지 못했습니다.');
+  return data.data ?? null;
+}
+
 // === 폴더 관리 ===
 
 /**
@@ -72,18 +84,8 @@ export async function createFolder(
   folder: Pick<FavoriteFolder, 'name' | 'description' | 'color' | 'icon'>
 ): Promise<FavoriteFolder | null> {
   try {
-    const { data, error } = await supabase
-      .from('youtube_app_favorite_folders')
-      .insert({
-        name: folder.name,
-        description: folder.description,
-        color: folder.color,
-        icon: folder.icon,
-      })
-      .select()
-      .single();
-
-    if (error) throw error;
+    const data = await mutate<Record<string, any>>('createFolder', folder);
+    if (!data) return null;
 
     return {
       id: data.id,
@@ -109,19 +111,7 @@ export async function updateFolder(
   updates: Partial<Pick<FavoriteFolder, 'name' | 'description' | 'color' | 'icon' | 'sortOrder'>>
 ): Promise<boolean> {
   try {
-    const updateData: any = {};
-    if (updates.name !== undefined) updateData.name = updates.name;
-    if (updates.description !== undefined) updateData.description = updates.description;
-    if (updates.color !== undefined) updateData.color = updates.color;
-    if (updates.icon !== undefined) updateData.icon = updates.icon;
-    if (updates.sortOrder !== undefined) updateData.sort_order = updates.sortOrder;
-
-    const { error } = await supabase
-      .from('youtube_app_favorite_folders')
-      .update(updateData)
-      .eq('id', folderId);
-
-    if (error) throw error;
+    await mutate('updateFolder', { folderId, ...updates });
     return true;
   } catch (error) {
     console.error('폴더 수정 실패:', error);
@@ -134,12 +124,7 @@ export async function updateFolder(
  */
 export async function deleteFolder(folderId: string): Promise<boolean> {
   try {
-    const { error } = await supabase
-      .from('youtube_app_favorite_folders')
-      .delete()
-      .eq('id', folderId);
-
-    if (error) throw error;
+    await mutate('deleteFolder', { folderId });
     return true;
   } catch (error) {
     console.error('폴더 삭제 실패:', error);
@@ -247,17 +232,11 @@ export async function addFavoriteChannel(
       return false;
     }
 
-    const { error } = await supabase
-      .from('youtube_app_favorite_channels')
-      .insert({
-        channel_id: channel.channelId,
-        channel_title: channel.channelTitle,
-        channel_thumbnail: channel.channelThumbnail,
-        subscriber_count: metricText(channel.subscriberCount),
-        folder_id: channel.folderId || null,
-      });
-
-    if (error) throw error;
+    await mutate('addFavoriteChannel', {
+      ...channel,
+      subscriberCount: metricText(channel.subscriberCount),
+      folderId: channel.folderId || null,
+    });
     return true;
   } catch (error) {
     console.error('즐겨찾기 추가 실패:', error);
@@ -273,12 +252,7 @@ export async function moveChannelToFolder(
   folderId: string | null
 ): Promise<boolean> {
   try {
-    const { error } = await supabase
-      .from('youtube_app_favorite_channels')
-      .update({ folder_id: folderId })
-      .eq('channel_id', channelId);
-
-    if (error) throw error;
+    await mutate('moveChannelToFolder', { channelId, folderId });
     return true;
   } catch (error) {
     console.error('채널 이동 실패:', error);
@@ -294,12 +268,7 @@ export async function updateChannelSortOrder(
   sortOrder: number
 ): Promise<boolean> {
   try {
-    const { error } = await supabase
-      .from('youtube_app_favorite_channels')
-      .update({ sort_order: sortOrder })
-      .eq('channel_id', channelId);
-
-    if (error) throw error;
+    await mutate('updateChannelSortOrder', { channelId, sortOrder });
     return true;
   } catch (error) {
     console.error('채널 정렬 순서 업데이트 실패:', error);
@@ -312,14 +281,7 @@ export async function updateChannelSortOrder(
  */
 export async function removeFavoriteChannel(channelId: string): Promise<boolean> {
   try {
-    const { error } = await supabase
-      .from('youtube_app_favorite_channels')
-      .delete()
-      .eq('channel_id', channelId);
-
-    if (error) throw error;
-
-    // DB trigger removes channel notifications in this same transaction.
+    await mutate('removeFavoriteChannel', { channelId });
     return true;
   } catch (error) {
     console.error('즐겨찾기 삭제 실패:', error);
@@ -332,12 +294,7 @@ export async function removeFavoriteChannel(channelId: string): Promise<boolean>
  */
 export async function updateChannelLastChecked(channelId: string): Promise<void> {
   try {
-    const { error } = await supabase
-      .from('youtube_app_favorite_channels')
-      .update({ last_checked: new Date().toISOString() })
-      .eq('channel_id', channelId);
-
-    if (error) throw error;
+    await mutate('updateChannelLastChecked', { channelId });
   } catch (error) {
     console.error('마지막 확인 시간 업데이트 실패:', error);
   }
@@ -399,29 +356,7 @@ export async function addNotification(
   notification: Omit<VideoNotification, 'isRead' | 'notifiedAt'>
 ): Promise<boolean> {
   try {
-    // 중복 체크
-    const { data: existing } = await supabase
-      .from('youtube_app_video_notifications')
-      .select('id')
-      .eq('video_id', notification.videoId)
-      .single();
-
-    if (existing) {
-      return false; // 이미 존재하는 알림
-    }
-
-    const { error } = await supabase
-      .from('youtube_app_video_notifications')
-      .insert({
-        video_id: notification.videoId,
-        video_title: notification.videoTitle,
-        channel_id: notification.channelId,
-        channel_title: notification.channelTitle,
-        published_at: notification.publishedAt,
-        thumbnail_url: notification.thumbnailUrl,
-      });
-
-    if (error) throw error;
+    await mutate('addNotification', notification);
     return true;
   } catch (error) {
     console.error('알림 추가 실패:', error);
@@ -434,12 +369,7 @@ export async function addNotification(
  */
 export async function markNotificationAsRead(videoId: string): Promise<void> {
   try {
-    const { error } = await supabase
-      .from('youtube_app_video_notifications')
-      .update({ is_read: true })
-      .eq('video_id', videoId);
-
-    if (error) throw error;
+    await mutate('markNotificationAsRead', { videoId });
   } catch (error) {
     console.error('알림 읽음 표시 실패:', error);
   }
@@ -450,12 +380,7 @@ export async function markNotificationAsRead(videoId: string): Promise<void> {
  */
 export async function markAllNotificationsAsRead(): Promise<void> {
   try {
-    const { error } = await supabase
-      .from('youtube_app_video_notifications')
-      .update({ is_read: true })
-      .eq('is_read', false);
-
-    if (error) throw error;
+    await mutate('markAllNotificationsAsRead');
   } catch (error) {
     console.error('전체 알림 읽음 표시 실패:', error);
   }
@@ -466,12 +391,7 @@ export async function markAllNotificationsAsRead(): Promise<void> {
  */
 export async function removeNotificationsByChannel(channelId: string): Promise<void> {
   try {
-    const { error } = await supabase
-      .from('youtube_app_video_notifications')
-      .delete()
-      .eq('channel_id', channelId);
-
-    if (error) throw error;
+    await mutate('removeNotificationsByChannel', { channelId });
   } catch (error) {
     console.error('채널 알림 삭제 실패:', error);
   }
@@ -482,12 +402,7 @@ export async function removeNotificationsByChannel(channelId: string): Promise<v
  */
 export async function removeNotification(videoId: string): Promise<void> {
   try {
-    const { error } = await supabase
-      .from('youtube_app_video_notifications')
-      .delete()
-      .eq('video_id', videoId);
-
-    if (error) throw error;
+    await mutate('removeNotification', { videoId });
   } catch (error) {
     console.error('알림 삭제 실패:', error);
   }
@@ -498,12 +413,7 @@ export async function removeNotification(videoId: string): Promise<void> {
  */
 export async function clearAllNotifications(): Promise<void> {
   try {
-    const { error } = await supabase
-      .from('youtube_app_video_notifications')
-      .delete()
-      .neq('id', '00000000-0000-0000-0000-000000000000'); // 모든 행 삭제
-
-    if (error) throw error;
+    await mutate('clearAllNotifications');
   } catch (error) {
     console.error('전체 알림 삭제 실패:', error);
   }

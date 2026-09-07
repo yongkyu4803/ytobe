@@ -42,6 +42,13 @@ BEGIN
   SELECT count(*) INTO snapshots FROM public.youtube_app_video_metric_snapshots WHERE video_id='test-video';
   IF snapshots<>1 THEN RAISE EXCEPTION 'duplicate bucket'; END IF;
   IF (SELECT count(*) FROM public.youtube_app_video_notifications WHERE video_id='test-video')<>1 THEN RAISE EXCEPTION 'duplicate notification'; END IF;
+  UPDATE public.youtube_app_channels SET next_sync_at=now() WHERE channel_id='test-channel';
+  SELECT * INTO r FROM public.youtube_app_claim_sync(1);
+  result:=public.youtube_app_finish_sync(r.run_id,
+    jsonb_build_object('channel_id','test-channel','title','테스트','subscriber_count',null,'view_count','0'),
+    jsonb_build_array(jsonb_build_object('video_id','test-late-video','channel_id','test-channel','title','늦게 공개된 영상',
+      'published_at',r2.started_at-interval '10 seconds','view_count','1','like_count',null,'comment_count','0')),3);
+  IF (result->>'notifications')::int<>1 THEN RAISE EXCEPTION 'late discovery notification missing'; END IF;
   INSERT INTO public.youtube_app_video_metric_snapshots(video_id,bucket_at,collected_at,view_count)
     SELECT video_id,bucket_at+interval '3 hours',collected_at+interval '3 hours',30
     FROM public.youtube_app_video_metric_snapshots WHERE video_id='test-video';
@@ -66,6 +73,12 @@ DO $$ BEGIN
   BEGIN PERFORM public.youtube_app_claim_sync(1); RAISE EXCEPTION 'anon claim allowed';
   EXCEPTION WHEN insufficient_privilege THEN NULL; END;
   BEGIN INSERT INTO public.youtube_app_channels(channel_id,title) VALUES('forbidden','forbidden'); RAISE EXCEPTION 'anon write allowed';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  BEGIN INSERT INTO public.youtube_app_favorite_folders(name) VALUES('forbidden'); RAISE EXCEPTION 'anon folder write allowed';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  BEGIN UPDATE public.youtube_app_favorite_channels SET channel_title='forbidden'; RAISE EXCEPTION 'anon favorite update allowed';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  BEGIN DELETE FROM public.youtube_app_video_notifications; RAISE EXCEPTION 'anon notification delete allowed';
   EXCEPTION WHEN insufficient_privilege THEN NULL; END;
 END $$;
 ROLLBACK;

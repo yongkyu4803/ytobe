@@ -1,5 +1,5 @@
 import { formatMetric } from '../utils/metrics';
-import { useState, FormEvent, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
 import Head from 'next/head';
 import Layout from '../components/Layout';
@@ -120,29 +120,30 @@ export default function Home() {
   const [sortField, setSortField] = useState<SortField>('viewCount');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authChecking, setAuthChecking] = useState(true);
+  const [authSubmitting, setAuthSubmitting] = useState(false);
   const [password, setPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
 
-  const CORRECT_PASSWORD = 'sm3232';
-
-  // 컴포넌트 마운트 시 세션 스토리지에서 인증 상태 확인
   useEffect(() => {
-    const storedAuth = sessionStorage.getItem('isAuthenticated');
-    if (storedAuth === 'true') {
-      setIsAuthenticated(true);
-    }
+    axios.get('/api/session')
+      .then(response => setIsAuthenticated(response.data.authenticated === true))
+      .catch(() => setIsAuthenticated(false))
+      .finally(() => setAuthChecking(false));
   }, []);
 
-  // 비밀번호 검증 함수
-  const handlePasswordSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handlePasswordSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (password === CORRECT_PASSWORD) {
+    setAuthSubmitting(true);
+    try {
+      await axios.post('/api/session', { password });
       setIsAuthenticated(true);
-      sessionStorage.setItem('isAuthenticated', 'true');
+      setPassword('');
       setPasswordError('');
-    } else {
-      setPasswordError('비밀번호가 올바르지 않습니다.');
-
+    } catch (error: unknown) {
+      setPasswordError(axios.isAxiosError(error) ? error.response?.data?.message || '로그인하지 못했습니다.' : '로그인하지 못했습니다.');
+    } finally {
+      setAuthSubmitting(false);
     }
   };
 
@@ -298,7 +299,8 @@ export default function Home() {
     }
   }, [dateFilter]);
 
-  // 인증되지 않은 경우 비밀번호 입력 화면 표시
+  if (authChecking) return null;
+
   if (!isAuthenticated) {
     return (
       <div className="auth-page">
@@ -341,9 +343,9 @@ export default function Home() {
                 <button
                   type="submit"
                   className="btn btn-primary btn-lg w-100"
-                  disabled={!password.trim()}
+                  disabled={!password.trim() || authSubmitting}
                 >
-                  접속하기
+                  {authSubmitting ? '확인 중…' : '접속하기'}
                 </button>
               </form>
             </div>

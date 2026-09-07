@@ -36,11 +36,11 @@
 
 DB의 `FOR UPDATE SKIP LOCKED`와 채널별 running 상태 고유 인덱스로 중복 수집을 막는다. 10분이 지난 실행은 만료 처리하며, 만료된 실행은 결과를 저장할 수 없다.
 
-`youtube_app_finish_sync`가 채널·영상·스냅샷·알림·성공 시각을 하나의 트랜잭션으로 저장한다. 오류 발생 시 모두 취소되므로 실패가 성공처럼 기록되지 않는다. 같은 시간 버킷의 재실행은 이력을 중복 생성하지 않는다.
+`youtube_app_finish_sync`가 채널·영상·스냅샷·알림·성공 시각을 하나의 트랜잭션으로 저장한다. 오류 발생 시 모두 취소되므로 실패가 성공처럼 기록되지 않는다. 같은 시간 버킷의 재실행은 이력을 중복 생성하지 않는다. 응답만 유실된 경우에는 실행 ID로 DB의 최종 상태를 다시 확인한다.
 
 일반 오류는 15/30/60/120/180분 간격으로 재시도한다. YouTube 할당량 초과는 24시간 뒤 재시도한다. 실패한 API 요청도 호출 수에 포함한다. 기존 성공 데이터는 유지하며 오류 코드는 실행 이력에 남긴다.
 
-알림은 기존 `last_checked`(없으면 즐겨찾기 추가 시각), 이후에는 자동 수집의 마지막 성공 시각 이후 게시 영상에서 생성한다. 영상 열람은 이 시각을 갱신하지 않는다. 즐겨찾기 삭제와 해당 채널 알림 삭제는 DB 트리거로 함께 처리하며, 수집한 영상/통계는 유지한다.
+알림은 현재 즐겨찾기 기간에 처음 발견되고 즐겨찾기 추가 이후 게시된 영상에서만 생성한다. 늦게 공개된 영상은 이전 성공 시각보다 게시 시각이 이르더라도 최초 발견 시 알림을 만들며, 채널을 삭제했다가 다시 추가한 경우 미구독 기간 영상은 알리지 않는다. 영상 열람은 수집 커서를 갱신하지 않는다. 즐겨찾기 삭제와 해당 채널 알림 삭제는 DB 트리거로 함께 처리하며, 수집한 영상/통계는 유지한다.
 
 ## 앱 연결
 
@@ -48,7 +48,7 @@ DB의 `FOR UPDATE SKIP LOCKED`와 채널별 running 상태 고유 인덱스로 �
 
 즐겨찾기 화면에서 수집 현황·마지막 수집 시각을 확인할 수 있다. `수집 실행`은 예정 시각이 도래한 다음 3개 채널을 처리한다. 모든 채널의 수집 주기를 강제로 초기화하는 버튼은 아니다. 자동 수집은 웹 서버나 브라우저가 꺼져 있어도 Supabase에서 계속된다.
 
-새 웹 코드를 다른 호스팅에 배포할 때 서버 전용 `YOUTUBE_APP_SYNC_SECRET`을 동일하게 설정해야 수동 수집 버튼이 작동한다. 예약 수집에는 웹 호스팅의 환경변수가 필요하지 않다. 서비스 역할 키는 웹 클라이언트에 넣지 않는다.
+웹 배포에는 서버 전용 `YOUTUBE_APP_SYNC_SECRET`, `SUPABASE_SERVICE_ROLE_KEY`, `YOUTUBE_APP_PASSWORD`를 설정한다. 비밀번호 확인 후 발급한 HttpOnly 세션이 있어야 폴더·즐겨찾기·알림 변경과 수동 수집을 실행할 수 있다. 브라우저는 기존 데이터를 직접 조회할 수 있지만 테이블에 직접 쓸 수 없다. 예약 수집에는 웹 호스팅의 환경변수가 필요하지 않으며 서비스 역할 키는 클라이언트 번들에 포함하지 않는다.
 
 ## 설정과 적용 기록
 
@@ -56,6 +56,7 @@ DB의 `FOR UPDATE SKIP LOCKED`와 채널별 running 상태 고유 인덱스로 �
 
 1. `migrations/20260907_collection_upgrade.sql` — 데이터 타입, 테이블, 함수, 뷰와 접근 권한.
 2. `migrations/20260907_collection_schedule.sql` — Cron/pg_net dispatch.
+3. `migrations/20260907_collection_hardening.sql` — 익명 쓰기 차단, 전역 실행 한도, 알림·커밋 복구 보완.
 
 공유 프로젝트 전체에 `db reset`이나 무차별 migration push를 실행하지 않는다. 이번 파일만 CLI의 linked query로 적용했다. 첫 번째 파일은 일회성 마이그레이션이므로 운영 DB에 재실행하지 않는다.
 
@@ -68,7 +69,7 @@ supabase functions deploy youtube-app-sync --project-ref rxwztfdnragffxbmlscf --
 supabase db query --linked --file migrations/20260907_collection_schedule.sql
 ```
 
-설정 스크립트는 앱 전용 Edge secrets `YOUTUBE_APP_API_KEY`, `YOUTUBE_APP_SYNC_SECRET`과 Vault의 `youtube_app_sync_url`, `youtube_app_sync_token`만 관리한다. 다른 앱의 키를 덮어쓰지 않는다. 토큰은 소스에 포함하지 않으며, 비밀 값이 들어간 임시 파일은 처리 후 삭제한다. JWT 검증 대신 충분히 긴 전용 작업 토큰을 함수 내부에서 검증한다. 수집 RPC는 service_role만 실행할 수 있고, 신규 수집 테이블은 클라이언트에서 읽기만 가능하다. 기존 개인용 즐겨찾기 접근 정책은 유지한다.
+설정 스크립트는 앱 전용 Edge secrets `YOUTUBE_APP_API_KEY`, `YOUTUBE_APP_SYNC_SECRET`과 Vault의 `youtube_app_sync_url`, `youtube_app_sync_token`만 관리한다. 다른 앱의 키를 덮어쓰지 않는다. 토큰은 소스에 포함하지 않으며, 비밀 값이 들어간 임시 파일은 처리 후 삭제한다. JWT 검증 대신 충분히 긴 전용 작업 토큰을 함수 내부에서 검증한다. 수집 RPC는 service_role만 실행할 수 있고, 모든 앱 테이블은 브라우저에서 읽기만 가능하다. 폴더·즐겨찾기·알림 쓰기는 개인 세션을 확인하는 서버 API가 service role로 수행한다.
 
 ## 점검 명령
 

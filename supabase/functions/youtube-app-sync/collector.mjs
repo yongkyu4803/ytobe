@@ -91,7 +91,14 @@ export async function runCollection(db, apiKey, {limit=3, fetcher=fetch}={}) {
     try {
       const {channel,videos}=await collectChannel(run.channel_id,run.started_at,youtube);
       const done=await db.rpc('youtube_app_finish_sync',{p_run_id:run.run_id,p_channel:channel,p_videos:videos,p_requests:youtube.requests});
-      if(done.error) throw new CollectionError('storage_failed','Collection could not be committed');
+      if(done.error) {
+        const recovered=await db.rpc('youtube_app_sync_result',{p_run_id:run.run_id});
+        if(!recovered.error && recovered.data?.status==='success') {
+          results.push({channelId:run.channel_id,status:'success',recovered:true,...recovered.data});
+          continue;
+        }
+        throw new CollectionError('storage_failed','Collection could not be committed');
+      }
       results.push({channelId:run.channel_id,status:done.data?.cancelled?'cancelled':'success',...done.data});
     } catch(error) {
       const code=error instanceof CollectionError?error.code:'collection_failed';

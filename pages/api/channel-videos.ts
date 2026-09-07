@@ -42,60 +42,43 @@ export default async function handler(
   }
 
   try {
-    // 1. 채널의 최신 영상 검색
-    const searchParams: any = {
-      part: 'snippet',
-      channelId,
-      key: apiKey,
-      maxResults: parseInt(maxResults as string, 10),
-      type: 'video',
-      order: 'date', // 최신순 정렬
-    };
-
-    // 특정 날짜 이후 영상만 조회 (알림용)
-    if (publishedAfter) {
-      searchParams.publishedAfter = publishedAfter;
-    }
-
-    const searchResponse = await axios.get('https://www.googleapis.com/youtube/v3/search', {
-      params: searchParams,
-    });
-
-    const searchItems = searchResponse.data.items;
-    if (!searchItems || searchItems.length === 0) {
-      return res.status(200).json({ items: [] });
-    }
-
-    const videoIds = searchItems.map((item: any) => item.id.videoId).join(',');
-
-    // 2. 동영상 상세 정보 호출
-    const videosResponse = await axios.get('https://www.googleapis.com/youtube/v3/videos', {
-      params: {
-        part: 'snippet,statistics,contentDetails',
-        id: videoIds,
-        key: apiKey,
-      },
-    });
-
-    const videoDetails = videosResponse.data.items;
-    if (!videoDetails || videoDetails.length === 0) {
-      return res.status(200).json({ items: [] });
-    }
-
-    // 3. 채널 정보 조회
+    // Use the channel's uploads playlist so the first view does not consume search.list quota.
     const channelResponse = await axios.get('https://www.googleapis.com/youtube/v3/channels', {
       params: {
-        part: 'statistics,snippet',
+        part: 'statistics,snippet,contentDetails',
         id: channelId,
         key: apiKey,
       },
+      timeout: 12000,
     });
+    const channelData = channelResponse.data.items?.find((item: {id?: string}) => item.id === channelId);
+    const uploadsPlaylistId = channelData?.contentDetails?.relatedPlaylists?.uploads;
+    if (!channelData || !uploadsPlaylistId) return res.status(404).json({ message: '채널을 찾지 못했습니다.' });
 
-    const channelData = channelResponse.data.items?.[0];
+    const playlistResponse = await axios.get('https://www.googleapis.com/youtube/v3/playlistItems', {
+      params: {
+        part: 'contentDetails',
+        playlistId: uploadsPlaylistId,
+        maxResults: publishedAfter ? 50 : limit,
+        key: apiKey,
+      },
+      timeout: 12000,
+    });
+    const videoIds = (playlistResponse.data.items || [])
+      .map((item: {contentDetails?: {videoId?: string}}) => item.contentDetails?.videoId)
+      .filter((id: unknown): id is string => typeof id === 'string');
     const channelStatistics = channelData?.statistics || { subscriberCount: null };
     const channelSnippet = channelData?.snippet || {};
+    if (!videoIds.length) return res.status(200).json({ source: 'youtube', collectedAt: new Date().toISOString(), items: [] });
 
-    // 4. 동영상 정보와 채널 정보 결합
+    const videosResponse = await axios.get('https://www.googleapis.com/youtube/v3/videos', {
+      params: { part: 'snippet,statistics,contentDetails', id: videoIds.join(','), key: apiKey },
+      timeout: 12000,
+    });
+    const videoDetails = (videosResponse.data.items || []).filter((video: {snippet?: {publishedAt?: string}}) =>
+      !publishedAfter || Date.parse(video.snippet?.publishedAt || '') > Date.parse(publishedAfter)
+    ).slice(0, limit);
+
     const combinedDetails = videoDetails.map((video: any) => {
       // 영상 길이를 초 단위로 변환
       const parseDuration = (duration: string) => {

@@ -36,6 +36,15 @@ test('database commit error never becomes success',async()=>{
  const fetcher=async url=>Response.json({items:url.pathname.endsWith('channels')?[channel]:[]});
  const out=await runCollection(db,'test',{fetcher});assert.equal(out[0].code,'storage_failed');assert.ok(calls.at(-1).endsWith('fail_sync'));
 });
+test('worker recovers success when the commit response is lost',async()=>{
+ const calls=[];const db={async rpc(name){calls.push(name);if(name.endsWith('claim_sync'))return {data:[{channel_id:'channel',run_id:'run',started_at:time}]};
+  if(name.endsWith('finish_sync'))return {error:{message:'response lost'}};
+  if(name.endsWith('sync_result'))return {data:{status:'success',videos:0,notifications:0}};
+  return {};}};
+ const fetcher=async url=>Response.json({items:url.pathname.endsWith('channels')?[channel]:[]});
+ const out=await runCollection(db,'test',{fetcher});assert.equal(out[0].status,'success');assert.equal(out[0].recovered,true);
+ assert.equal(calls.some(name=>name.endsWith('fail_sync')),false);
+});
 test('transport errors do not expose API key',async()=>{
  const yt=youtubeClient('private-api-key',async()=>{throw Error('url with private-api-key');});
  await assert.rejects(yt.get('channels',{}),e=>!e.message.includes('private-api-key')&&e.code==='network_timeout');

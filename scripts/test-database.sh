@@ -11,4 +11,5 @@ done
 docker exec "$container_name" psql -U postgres -v ON_ERROR_STOP=1 -c 'CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role BYPASSRLS;' >/dev/null
 docker exec -i "$container_name" psql -U postgres -v ON_ERROR_STOP=1 < migrations/create_tables.sql >/dev/null
 docker exec -i "$container_name" psql -U postgres -v ON_ERROR_STOP=1 < migrations/20260907_collection_upgrade.sql >/dev/null
+docker exec -i "$container_name" psql -U postgres -v ON_ERROR_STOP=1 < migrations/20260907_collection_hardening.sql >/dev/null
 docker exec -i "$container_name" psql -U postgres -v ON_ERROR_STOP=1 < tests/database.sql

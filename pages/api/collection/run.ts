@@ -1,13 +1,11 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { hasSameOrigin, hasValidPersonalSession } from '../../../lib/server/personalSession';
 
 // Personal-app action. The worker secret stays server-side; DB due times rate-limit collection.
 export default async function handler(req: NextApiRequest,res: NextApiResponse) {
   if(req.method!=='POST') {res.setHeader('Allow','POST');return res.status(405).json({message:'POST 요청이 필요합니다.'});}
-  const origin=req.headers.origin;
-  if(origin) {
-    try {if(new URL(origin).host!==req.headers.host) return res.status(403).json({message:'허용되지 않은 요청입니다.'});}
-    catch {return res.status(403).json({message:'허용되지 않은 요청입니다.'});}
-  }
+  if(!hasSameOrigin(req)) return res.status(403).json({message:'허용되지 않은 요청입니다.'});
+  if(!hasValidPersonalSession(req)) return res.status(401).json({message:'로그인이 필요합니다.'});
   const url=process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
   const secret=process.env.YOUTUBE_APP_SYNC_SECRET;
   if(!url || !secret) return res.status(503).json({message:'수동 수집 연결이 설정되지 않았습니다. 예약 수집은 Supabase에서 별도로 실행됩니다.'});
