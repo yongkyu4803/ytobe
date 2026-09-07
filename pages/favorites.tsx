@@ -6,6 +6,7 @@ import Layout from '../components/Layout';
 import FavoriteButton from '../components/FavoriteButton';
 import FolderManager from '../components/FolderManager';
 import CollectionStatus from '../components/CollectionStatus';
+import AddChannelForm from '../components/AddChannelForm';
 import {
   getFavoriteChannels,
   moveChannelToFolder,
@@ -183,6 +184,8 @@ export default function FavoritesPage() {
         />
       </div>
 
+      <AddChannelForm folderId={selectedFolderId} onAdded={loadFavoriteChannels} />
+
       {favoriteChannels.length === 0 ? (
         <div className="text-center py-5">
           <div style={{ fontSize: '5rem', opacity: 0.2 }}>⭐</div>
@@ -190,7 +193,7 @@ export default function FavoritesPage() {
             {selectedFolderId ? '이 폴더에 채널이 없습니다' : '즐겨찾기에 등록된 채널이 없습니다'}
           </h4>
           <p className="text-muted">
-            검색 결과나 추천 페이지에서 채널 옆의 ⭐ 버튼을 눌러 즐겨찾기를 추가하세요
+            위에서 채널 주소나 이름으로 추가하거나, 검색·추천 페이지에서 채널 옆의 ⭐ 버튼을 누르세요
           </p>
         </div>
       ) : (
