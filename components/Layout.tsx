@@ -8,6 +8,7 @@ const navigation = [
   { href: '/', label: '키워드 검색', icon: 'action-search' },
   { href: '/trending', label: '인기 추천', icon: 'content-data-dashboard' },
   { href: '/favorites', label: '즐겨찾기', icon: 'content-archive' },
+  { href: '/rising', label: '급상승 영상', icon: 'content-analysis-report' },
 ];
 
 export default function Layout({ children }: { children: ReactNode }) {
@@ -30,7 +31,6 @@ export default function Layout({ children }: { children: ReactNode }) {
                 <GqaiIcon name={item.icon} />{item.label}
               </Link>
             </li>)}
-            <li><span className="nav-unavailable"><GqaiIcon name="content-analysis-report" />트렌드 분석 <small>준비중</small></span></li>
           </ul>
         </nav>
       </header>

@@ -78,6 +78,19 @@ BEGIN
   IF result->>'status'<>'completed' OR (result->>'succeeded')::integer<>4 THEN RAISE EXCEPTION 'full sync did not complete'; END IF;
   DELETE FROM public.youtube_app_favorite_channels WHERE channel_id IN ('full-a','full-b','full-c');
 
+  INSERT INTO public.youtube_app_favorite_channels(channel_id,channel_title,subscriber_count,added_at)
+    VALUES('rising-channel','급상승 채널',1000,now()-interval '1 day');
+  INSERT INTO public.youtube_app_videos(video_id,channel_id,title,published_at,view_count,collected_at)
+    VALUES('rising-video','rising-channel','급상승 영상',now()-interval '1 day',400,now()-interval '3 hours');
+  INSERT INTO public.youtube_app_video_metric_snapshots(video_id,bucket_at,collected_at,view_count)
+    VALUES('rising-video',date_trunc('hour',now())-interval '6 hours',now()-interval '6 hours',100),
+      ('rising-video',date_trunc('hour',now())-interval '3 hours',now()-interval '3 hours',400);
+  IF NOT EXISTS(SELECT 1 FROM public.youtube_app_rising_videos
+    WHERE video_id='rising-video' AND view_delta=300 AND views_per_hour=100 AND observation_count=2) THEN
+    RAISE EXCEPTION 'rising video metrics missing';
+  END IF;
+  DELETE FROM public.youtube_app_favorite_channels WHERE channel_id='rising-channel';
+
   UPDATE public.youtube_app_channels SET next_sync_at=now() WHERE channel_id='test-channel';
   SELECT * INTO r FROM public.youtube_app_claim_sync(1);
   UPDATE public.youtube_app_sync_runs SET started_at=now()-interval '11 minutes' WHERE id=r.run_id;

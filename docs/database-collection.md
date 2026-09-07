@@ -17,6 +17,8 @@
 
 `youtube_app_video_growth` 뷰는 연속된 실제 측정 시각 간 조회수 증가량, 경과시간, 시간당 증가량을 제공한다. `youtube_app_channel_growth`는 구독자 증가량과 증가율을 제공한다. 이전 측정이 없거나 분모가 0인 경우 결과는 NULL이다. 측정 간격을 임의로 24시간으로 간주하지 않으며, 조회수 감소도 그대로 표시한다.
 
+`youtube_app_rising_videos` 뷰는 현재 즐겨찾기 채널의 최근 30일 영상을 대상으로 한다. 최근 8시간 안의 실제 관측 구간이 있고, 영상별 측정값이 둘 이상인 경우만 반환한다. 시간당 조회수, 구독자 1,000명당 조회 속도, 채널별 중앙 조회 속도 대비 배율, 공개 후 경과 시간을 합산한 점수로 정렬한다.
+
 숫자는 음수를 허용하지 않는다. 미수집/비공개 수치는 NULL, 실제 0은 0이다. 이력은 최초 자동 수집부터 시작한다. 기존 알림으로부터 복원한 영상에는 과거 통계를 만들어 넣지 않는다.
 
 ## 수집 방식
@@ -60,6 +62,8 @@ Vercel에서 `YOUTUBE_APP_PASSWORD`를 변경하면 새 배포를 실행해야 �
 1. `migrations/20260907_collection_upgrade.sql` — 데이터 타입, 테이블, 함수, 뷰와 접근 권한.
 2. `migrations/20260907_collection_schedule.sql` — Cron/pg_net dispatch.
 3. `migrations/20260907_collection_hardening.sql` — 익명 쓰기 차단, 전역 실행 한도, 알림·커밋 복구 보완.
+4. `migrations/20260907_full_collection.sql` — 재개 가능한 전체 수집 작업과 진행 상태.
+5. `migrations/20260907_rising_videos.sql` — 즐겨찾기 채널의 급상승 영상 순위 뷰.
 
 공유 프로젝트 전체에 `db reset`이나 무차별 migration push를 실행하지 않는다. 이번 파일만 CLI의 linked query로 적용했다. 첫 번째 파일은 일회성 마이그레이션이므로 운영 DB에 재실행하지 않는다.
 
