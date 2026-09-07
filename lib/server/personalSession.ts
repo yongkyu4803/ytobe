@@ -20,7 +20,7 @@ function sign(payload: string) {
 
 export function verifyPersonalPassword(candidate: unknown) {
   const expected = process.env.YOUTUBE_APP_PASSWORD || '';
-  return typeof candidate === 'string' && candidate.length <= 256 && expected.length >= 16 && safeEqual(candidate, expected);
+  return typeof candidate === 'string' && candidate.length <= 256 && expected.length > 0 && safeEqual(candidate, expected);
 }
 
 export function createPersonalSession() {

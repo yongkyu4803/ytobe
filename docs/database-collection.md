@@ -50,6 +50,8 @@ DB의 `FOR UPDATE SKIP LOCKED`와 채널별 running 상태 고유 인덱스로 �
 
 웹 배포에는 서버 전용 `YOUTUBE_APP_SYNC_SECRET`, `SUPABASE_SERVICE_ROLE_KEY`, `YOUTUBE_APP_PASSWORD`를 설정한다. 비밀번호 확인 후 발급한 HttpOnly 세션이 있어야 폴더·즐겨찾기·알림 변경과 수동 수집을 실행할 수 있다. 브라우저는 기존 데이터를 직접 조회할 수 있지만 테이블에 직접 쓸 수 없다. 예약 수집에는 웹 호스팅의 환경변수가 필요하지 않으며 서비스 역할 키는 클라이언트 번들에 포함하지 않는다.
 
+Vercel에서 `YOUTUBE_APP_PASSWORD`를 변경하면 새 배포를 실행해야 반영된다. 길이 제한은 두지 않지만 16자 이상의 고유한 값을 권장한다.
+
 ## 설정과 적용 기록
 
 원본 적용 파일:
