@@ -1,5 +1,6 @@
 // Supabase를 사용한 즐겨찾기 채널 및 알림 관리
 import { supabase } from '../lib/supabase';
+import { metricText } from './metrics';
 
 export interface FavoriteFolder {
   id: string;
@@ -16,7 +17,7 @@ export interface FavoriteChannel {
   channelId: string;
   channelTitle: string;
   channelThumbnail?: string;
-  subscriberCount: string;
+  subscriberCount: string | null;
   folderId?: string;
   sortOrder: number;
   addedAt: string;
@@ -184,15 +185,20 @@ export async function getFavoriteChannels(folderId?: string): Promise<FavoriteCh
       }
     }
 
-    const { data, error } = await query.order('sort_order', { ascending: true });
-
-    if (error) throw error;
+    const data: Record<string, any>[] = [];
+    const orderedQuery = query.order('sort_order', { ascending: true }).order('channel_id');
+    for (let offset = 0; ; offset += 500) {
+      const { data: page, error } = await orderedQuery.range(offset, offset + 499);
+      if (error) throw error;
+      data.push(...(page || []));
+      if (!page || page.length < 500) break;
+    }
 
     return (data || []).map(row => ({
       channelId: row.channel_id,
       channelTitle: row.channel_title,
       channelThumbnail: row.channel_thumbnail,
-      subscriberCount: row.subscriber_count,
+      subscriberCount: metricText(row.subscriber_count),
       folderId: row.folder_id,
       sortOrder: row.sort_order,
       addedAt: row.added_at,
@@ -247,7 +253,7 @@ export async function addFavoriteChannel(
         channel_id: channel.channelId,
         channel_title: channel.channelTitle,
         channel_thumbnail: channel.channelThumbnail,
-        subscriber_count: channel.subscriberCount,
+        subscriber_count: metricText(channel.subscriberCount),
         folder_id: channel.folderId || null,
       });
 
@@ -313,8 +319,7 @@ export async function removeFavoriteChannel(channelId: string): Promise<boolean>
 
     if (error) throw error;
 
-    // 해당 채널의 알림도 삭제
-    await removeNotificationsByChannel(channelId);
+    // DB trigger removes channel notifications in this same transaction.
     return true;
   } catch (error) {
     console.error('즐겨찾기 삭제 실패:', error);

@@ -1,13 +1,13 @@
+import { formatMetric } from '../utils/metrics';
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import axios from 'axios';
 import Layout from '../components/Layout';
 import FavoriteButton from '../components/FavoriteButton';
 import FolderManager from '../components/FolderManager';
+import CollectionStatus from '../components/CollectionStatus';
 import {
   getFavoriteChannels,
-  updateChannelLastChecked,
-  addNotification,
   moveChannelToFolder,
   getFolders,
   type FavoriteChannel,
@@ -47,6 +47,9 @@ export default function FavoritesPage() {
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [collectionNote, setCollectionNote] = useState('');
+  const [syncMessage, setSyncMessage] = useState('');
+  const [statusVersion, setStatusVersion] = useState(0);
   const [checkingNewVideos, setCheckingNewVideos] = useState(false);
   const [showFolderSelector, setShowFolderSelector] = useState(false);
   const [movingChannelId, setMovingChannelId] = useState<string | null>(null);
@@ -94,6 +97,7 @@ export default function FavoritesPage() {
     setLoading(true);
     setError('');
     setVideos([]);
+    setCollectionNote('');
 
     try {
       const response = await axios.get(`/api/channel-videos`, {
@@ -104,12 +108,14 @@ export default function FavoritesPage() {
       });
 
       setVideos(response.data.items || []);
+      if (response.data.collectedAt) {
+        setCollectionNote(`${response.data.source === 'database' ? '저장된 영상' : '실시간 조회'} · ${formatDate(response.data.collectedAt)}${response.data.stale ? ' · 갱신 지연: 마지막으로 수집한 정보를 표시합니다.' : ''}`);
+      }
       if (!response.data.items || response.data.items.length === 0) {
         setError('최근 영상이 없습니다.');
       }
 
-      // 마지막 확인 시간 업데이트
-      await updateChannelLastChecked(channel.channelId);
+      // Viewing a channel must not advance the background notification cursor.
     } catch (err: any) {
       const message = err.response?.data?.message || '영상을 불러오는 데 실패했습니다.';
       setError(message);
@@ -119,75 +125,28 @@ export default function FavoritesPage() {
     setLoading(false);
   };
 
-  // 모든 즐겨찾기 채널의 새 영상 확인
+  // Run the next due batch; the scheduler continues independently of this page.
   const checkAllNewVideos = async () => {
-    if (favoriteChannels.length === 0) {
-      alert('즐겨찾기에 등록된 채널이 없습니다.');
-      return;
-    }
-
     setCheckingNewVideos(true);
-    let totalNewVideos = 0;
-
+    setSyncMessage('수집할 채널을 확인하고 있습니다.');
     try {
-      for (const channel of favoriteChannels) {
-        const lastChecked = channel.lastChecked || channel.addedAt;
-
-        const response = await axios.get(`/api/channel-videos`, {
-          params: {
-            channelId: channel.channelId,
-            maxResults: 5,
-            publishedAfter: lastChecked,
-          },
-        });
-
-        const newVideos = response.data.items || [];
-
-        // 새 영상이 있으면 알림 추가
-        for (const video of newVideos) {
-          const success = await addNotification({
-            videoId: video.id,
-            videoTitle: video.snippet.title,
-            channelId: video.snippet.channelId,
-            channelTitle: video.snippet.channelTitle,
-            publishedAt: video.snippet.publishedAt,
-            thumbnailUrl: video.snippet.thumbnails.medium.url,
-          });
-
-          if (success) totalNewVideos++;
-        }
-
-        // 마지막 확인 시간 업데이트
-        await updateChannelLastChecked(channel.channelId);
-      }
-
-      loadFavoriteChannels(); // 상태 갱신
-
-      if (totalNewVideos > 0) {
-        alert(`${totalNewVideos}개의 새로운 영상을 발견했습니다! 🔔`);
-      } else {
-        alert('새로운 영상이 없습니다. ✅');
-      }
-    } catch (err) {
-      console.error('새 영상 확인 중 오류:', err);
-      alert('새 영상 확인 중 오류가 발생했습니다.');
+      const response = await axios.post('/api/collection/run');
+      const results = response.data.results || [];
+      const succeeded = results.filter((r: {status: string}) => r.status === 'success').length;
+      const failed = results.filter((r: {status: string}) => r.status === 'failed').length;
+      setSyncMessage(results.length ? `${succeeded}개 채널 수집 완료${failed ? `, ${failed}개 실패. 자동으로 재시도합니다.` : '.'} 나머지 대상은 예약 순서대로 수집합니다.` : '현재 수집 예정 시각이 된 채널이 없습니다.');
+      await loadFavoriteChannels();
+      if (selectedChannel) await loadChannelVideos(selectedChannel);
+    } catch (err: unknown) {
+      setSyncMessage(axios.isAxiosError(err) ? err.response?.data?.message || '수집 요청에 실패했습니다.' : '수집 요청에 실패했습니다.');
+    } finally {
+      setCheckingNewVideos(false);
+      setStatusVersion(v => v + 1);
     }
-
-    setCheckingNewVideos(false);
   };
 
   // 숫자 포맷팅
-  const formatNumber = (numStr: string): string => {
-    const num = parseInt(numStr, 10);
-    if (isNaN(num)) return '0';
-    if (num >= 100000000) {
-      return `${(num / 100000000).toFixed(1).replace(/\.0$/, '')}억`;
-    }
-    if (num >= 10000) {
-      return `${Math.floor(num / 10000)}만`;
-    }
-    return new Intl.NumberFormat('ko-KR').format(num);
-  };
+  const formatNumber = formatMetric;
 
   // 날짜 포맷팅
   const formatDate = (dateString: string): string => {
@@ -208,13 +167,16 @@ export default function FavoritesPage() {
         <meta name="description" content="즐겨찾기 채널의 최신 영상을 확인하고 알림을 받으세요" />
       </Head>
 
-      <div className="text-center mb-5">
-        <h2 className="display-6 fw-bold text-primary mb-2">⭐ 즐겨찾기 채널</h2>
+      <div className="page-heading">
+        <h2 className="display-6 fw-bold text-primary mb-2">즐겨찾기 채널</h2>
         <p className="lead text-muted">즐겨찾는 채널의 새로운 영상을 빠르게 확인하세요</p>
       </div>
 
       {/* 상단: 폴더 목록 */}
       <div className="mb-4">
+        <CollectionStatus refreshKey={statusVersion} />
+        {syncMessage && <p className="alert alert-info" role="status">{syncMessage}</p>}
+
         <FolderManager
           selectedFolderId={selectedFolderId}
           onSelectFolder={handleFolderSelect}
@@ -233,8 +195,8 @@ export default function FavoritesPage() {
         </div>
       ) : (
         <div className="row">
-          {/* 왼쪽: 채널 목록 (30%) */}
-          <div className="col-md-3 mb-4">
+          {/* 왼쪽: 채널 목록 (35%) */}
+          <div className="favorites-channel-list mb-4">
             <div className="card shadow-sm">
               <div className="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                 <h5 className="mb-0">채널 목록 ({favoriteChannels.length})</h5>
@@ -242,7 +204,8 @@ export default function FavoritesPage() {
                   className="btn btn-sm btn-light"
                   onClick={checkAllNewVideos}
                   disabled={checkingNewVideos}
-                  title="모든 채널의 새 영상 확인"
+                  title="수집 예정 시각이 된 채널을 최대 3개 수집"
+                  aria-busy={checkingNewVideos}
                 >
                   {checkingNewVideos ? (
                     <>
@@ -250,7 +213,7 @@ export default function FavoritesPage() {
                       확인 중...
                     </>
                   ) : (
-                    <>🔔 새 영상 확인</>
+                    <>수집 실행</>
                   )}
                 </button>
               </div>
@@ -303,12 +266,13 @@ export default function FavoritesPage() {
             </div>
           </div>
 
-          {/* 오른쪽: 선택된 채널의 영상 목록 (70%) */}
-          <div className="col-md-9">
+          {/* 오른쪽: 선택된 채널의 영상 목록 (65%) */}
+          <div className="favorites-channel-detail">
             {selectedChannel ? (
               <div className="card shadow-sm">
                 <div className="card-header bg-light">
                   <h5 className="mb-0">{selectedChannel.channelTitle}의 최신 영상</h5>
+                  {collectionNote && <p className="small text-muted mt-2 mb-0" role="status">{collectionNote}</p>}
                 </div>
                 <div className="card-body">
                   {loading ? (
@@ -447,6 +411,21 @@ export default function FavoritesPage() {
       )}
 
       <style jsx>{`
+        .favorites-channel-list,
+        .favorites-channel-detail {
+          min-width: 0;
+          width: 100%;
+        }
+        @media (min-width: 768px) {
+          .favorites-channel-list {
+            flex: 0 0 35%;
+            width: 35%;
+          }
+          .favorites-channel-detail {
+            flex: 0 0 65%;
+            width: 65%;
+          }
+        }
         .hover-shadow {
           transition: box-shadow 0.3s ease;
         }

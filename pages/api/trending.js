@@ -16,7 +16,7 @@ export default async function handler(req, res) {
     });
   }
 
-  const apiKey = process.env.YOUTUBE_API_KEY || 'AIzaSyAP91a4OyzrJ0tFUj4AieVn5IMYr_LYiBc';
+  const apiKey = process.env.YOUTUBE_API_KEY;
 
   try {
     // 1. YouTube Trending Videos API 호출
@@ -33,7 +33,6 @@ export default async function handler(req, res) {
       trendingParams.videoCategoryId = category;
     }
 
-    console.log('Trending API params:', trendingParams);
 
     const trendingResponse = await axios.get('https://www.googleapis.com/youtube/v3/videos', {
       params: trendingParams,
@@ -75,7 +74,7 @@ export default async function handler(req, res) {
 
       return {
         ...video,
-        channelStatistics: channelStatsMap.get(video.snippet.channelId) || { subscriberCount: '0' },
+        channelStatistics: channelStatsMap.get(video.snippet.channelId) || { subscriberCount: null },
         isShorts,
         durationInSeconds,
       };

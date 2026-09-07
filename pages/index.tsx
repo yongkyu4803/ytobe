@@ -1,7 +1,9 @@
+import { formatMetric } from '../utils/metrics';
 import { useState, FormEvent, useEffect } from 'react';
 import axios from 'axios';
 import Head from 'next/head';
 import Layout from '../components/Layout';
+import GqaiIcon from '../components/GqaiIcon';
 import FavoriteButton from '../components/FavoriteButton';
 
 interface VideoStatistics {
@@ -34,24 +36,14 @@ interface Video {
 }
 
 // 숫자를 천 단위 콤마와 '만', '억' 단위로 포맷팅하는 함수
-const formatNumber = (numStr: string): string => {
-  const num = parseInt(numStr, 10);
-  if (isNaN(num)) return '0';
-  if (num >= 100000000) {
-    return `${(num / 100000000).toFixed(1).replace(/\.0$/, '')}억`;
-  }
-  if (num >= 10000) {
-    return `${Math.floor(num / 10000)}만`;
-  }
-  return new Intl.NumberFormat('ko-KR').format(num);
-};
+const formatNumber = formatMetric;
 
 // 영상 길이를 포맷팅하는 함수
 const formatDuration = (seconds: number): string => {
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
   const remainingSeconds = seconds % 60;
-  
+
   if (hours > 0) {
     return `${hours}:${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
   }
@@ -66,7 +58,7 @@ const formatPublishedAt = (publishedAt: string): string => {
   const day = String(published.getDate()).padStart(2, '0');
   const hours = String(published.getHours()).padStart(2, '0');
   const minutes = String(published.getMinutes()).padStart(2, '0');
-  
+
   return `${year}-${month}-${day} ${hours}:${minutes}`;
 };
 
@@ -74,13 +66,13 @@ const formatPublishedAt = (publishedAt: string): string => {
 const calculateViewSubscriberRatio = (viewCount: string, subscriberCount: string): { ratio: number, level: string, color: string } => {
   const views = parseInt(viewCount, 10);
   const subscribers = parseInt(subscriberCount, 10);
-  
+
   if (subscribers === 0 || isNaN(views) || isNaN(subscribers)) {
     return { ratio: 0, level: '정보없음', color: 'text-muted' };
   }
-  
+
   const ratio = views / subscribers;
-  
+
   if (ratio >= 5) {
     return { ratio, level: '매우 높음', color: 'text-success' };
   } else if (ratio >= 2) {
@@ -96,13 +88,13 @@ const calculateViewSubscriberRatio = (viewCount: string, subscriberCount: string
 const calculateEngagementRate = (likeCount: string, commentCount: string): { ratio: number, level: string, color: string } => {
   const likes = parseInt(likeCount, 10);
   const comments = parseInt(commentCount, 10);
-  
+
   if (comments === 0 || isNaN(likes) || isNaN(comments)) {
     return { ratio: 0, level: '정보없음', color: 'text-muted' };
   }
-  
+
   const ratio = likes / comments;
-  
+
   if (ratio >= 50) {
     return { ratio, level: '매우 높음', color: 'text-success' };
   } else if (ratio >= 20) {
@@ -150,7 +142,7 @@ export default function Home() {
       setPasswordError('');
     } else {
       setPasswordError('비밀번호가 올바르지 않습니다.');
-      setPassword('');
+
     }
   };
 
@@ -168,7 +160,7 @@ export default function Home() {
   const getSortedVideos = (videosToSort: Video[]) => {
     return [...videosToSort].sort((a, b) => {
       let aValue: any, bValue: any;
-      
+
       switch (sortField) {
         case 'title':
           aValue = a.snippet.title.toLowerCase();
@@ -217,11 +209,11 @@ export default function Home() {
         default:
           return 0;
       }
-      
+
       if (isNaN(aValue) && isNaN(bValue)) return 0;
       if (isNaN(aValue)) return 1;
       if (isNaN(bValue)) return -1;
-      
+
       if (sortOrder === 'asc') {
         return aValue > bValue ? 1 : aValue < bValue ? -1 : 0;
       } else {
@@ -239,7 +231,7 @@ export default function Home() {
   const getPublishedAfterDate = (dateFilter: string): string | null => {
     const now = new Date();
     let date: Date;
-    
+
     switch (dateFilter) {
       case 'today':
         date = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -256,7 +248,7 @@ export default function Home() {
       default:
         return null;
     }
-    
+
     return date.toISOString();
   };
 
@@ -271,14 +263,14 @@ export default function Home() {
 
     try {
       let apiUrl = `/api/youtube?query=${searchQuery}`;
-      
+
       const publishedAfter = getPublishedAfterDate(currentDateFilter);
       if (publishedAfter) {
         apiUrl += `&publishedAfter=${publishedAfter}`;
       }
-      
+
       console.log('Searching with URL:', apiUrl);
-      
+
       const response = await axios.get(apiUrl);
       setVideos(response.data.items || []);
       if (!response.data.items || response.data.items.length === 0) {
@@ -309,7 +301,7 @@ export default function Home() {
   // 인증되지 않은 경우 비밀번호 입력 화면 표시
   if (!isAuthenticated) {
     return (
-      <div className="container-fluid">
+      <div className="auth-page">
         <Head>
           <title>YouTube Analytics - 로그인</title>
           <meta name="description" content="YouTube Analytics 접근을 위한 인증이 필요합니다." />
@@ -317,16 +309,21 @@ export default function Home() {
         </Head>
 
         <div className="d-flex justify-content-center align-items-center min-vh-100">
-          <div className="card shadow-lg" style={{ width: '400px' }}>
-            <div className="card-body p-5">
-              <div className="text-center mb-4">
-                <h2 className="text-primary fw-bold mb-2">🔐 YouTube Analytics</h2>
+          <div className="card auth-card">
+            <div className="card-body">
+              <div className="page-heading">
+                <h2 className="text-primary fw-bold mb-2">YouTube Analytics</h2>
                 <p className="text-muted">접근하려면 비밀번호를 입력하세요</p>
               </div>
-              
+
               <form onSubmit={handlePasswordSubmit}>
                 <div className="mb-3">
+                  <label htmlFor="password" className="form-label">비밀번호</label>
                   <input
+                    id="password"
+                    autoComplete="current-password"
+                    aria-invalid={!!passwordError}
+                    aria-describedby={passwordError ? "password-error" : undefined}
                     type="password"
                     className={`form-control form-control-lg ${passwordError ? 'is-invalid' : ''}`}
                     placeholder="비밀번호를 입력하세요"
@@ -335,14 +332,14 @@ export default function Home() {
                     autoFocus
                   />
                   {passwordError && (
-                    <div className="invalid-feedback">
+                    <div id="password-error" className="invalid-feedback" role="alert">
                       {passwordError}
                     </div>
                   )}
                 </div>
-                
-                <button 
-                  type="submit" 
+
+                <button
+                  type="submit"
                   className="btn btn-primary btn-lg w-100"
                   disabled={!password.trim()}
                 >
@@ -364,30 +361,33 @@ export default function Home() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <div className="text-center mb-5">
-        <h2 className="display-6 fw-bold text-primary mb-2">🔍 키워드 검색</h2>
+      <div className="page-heading">
+        <h2 className="display-6 fw-bold text-primary mb-2">키워드 검색</h2>
         <p className="lead text-muted">원하는 키워드로 YouTube 동영상을 검색하고 상세 분석을 확인하세요</p>
       </div>
 
       <form onSubmit={searchVideos} className="mb-4">
         <div className="row justify-content-center">
           <div className="col-md-8 col-lg-6">
-            <div className="input-group shadow-sm">
+            <label htmlFor="video-query" className="form-label">검색 키워드</label>
+            <div className="input-group">
               <span className="input-group-text bg-white border-end-0">
-                <i className="text-muted">🔍</i>
+                <GqaiIcon name="action-search" />
               </span>
               <input
-                type="text"
+                id="video-query"
+                type="search"
                 className="form-control border-start-0 py-3"
                 placeholder="검색어를 입력하세요..."
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 style={{ fontSize: '1.1rem' }}
               />
-              <button 
-                type="submit" 
-                className="btn btn-primary px-4" 
+              <button
+                type="submit"
+                className="btn btn-primary px-4"
                 disabled={loading}
+                aria-busy={loading}
                 style={{ minWidth: '100px' }}
               >
                 {loading ? (
@@ -444,7 +444,7 @@ export default function Home() {
                 </li>
               </ul>
             </div>
-            
+
             <div className="dropdown">
               <button
                 className="btn btn-outline-secondary dropdown-toggle"
@@ -453,10 +453,10 @@ export default function Home() {
                 data-bs-toggle="dropdown"
                 aria-expanded="false"
               >
-                {dateFilter === 'all' ? '전체 기간' : 
-                 dateFilter === 'today' ? '오늘' : 
-                 dateFilter === 'week' ? '이번 주' : 
-                 dateFilter === 'month' ? '이번 달' : 
+                {dateFilter === 'all' ? '전체 기간' :
+                 dateFilter === 'today' ? '오늘' :
+                 dateFilter === 'week' ? '이번 주' :
+                 dateFilter === 'month' ? '이번 달' :
                  dateFilter === 'year' ? '올해' : '전체 기간'}
               </button>
               <ul className="dropdown-menu" aria-labelledby="dateFilterDropdown">
@@ -505,13 +505,13 @@ export default function Home() {
           </div>
         )} */}
 
-        {error && <p className="text-danger mt-3">{error}</p>}
+        {error && <p className="alert alert-danger mt-3" role="alert">{error}</p>}
 
         {videos.length > 0 && (
           <div className="d-flex justify-content-end mb-3">
             <div className="bg-light rounded-pill px-3 py-2 border">
               <small className="text-muted">
-                <span className="text-primary fw-semibold">📊 성과지표</span>: 구독자 수 대비 조회수 비율 
+                <span className="text-primary fw-semibold">📊 성과지표</span>: 구독자 수 대비 조회수 비율
                 <span className="text-muted mx-2">•</span>
                 <span className="text-info fw-semibold">💬 참여율</span>: 댓글 수 대비 좋아요 수 비율
               </small>
@@ -519,7 +519,14 @@ export default function Home() {
           </div>
         )}
 
-        <div className="table-responsive mt-4">
+        {!loading && !error && videos.length === 0 && (
+          <div className="search-empty" role="status">
+            <GqaiIcon name="action-search" size={32} />
+            <h3>검색할 키워드를 입력하세요</h3>
+            <p className="text-muted mb-0">동영상의 조회수, 구독자 수와 참여율을 한눈에 비교할 수 있습니다.</p>
+          </div>
+        )}
+        {videos.length > 0 && <div className="table-responsive mt-4">
           <table className="table table-striped table-hover">
             <thead className="table-dark">
               <tr>
@@ -540,66 +547,66 @@ export default function Home() {
                   채널{getSortIcon('channelTitle')}
                 </th>
                 <th scope="col" style={{ width: '80px', minWidth: '70px', whiteSpace: 'nowrap' }}>즐겨찾기</th>
-                <th 
-                  scope="col" 
+                <th
+                  scope="col"
                   style={{ width: '130px', minWidth: '110px', cursor: 'pointer', whiteSpace: 'nowrap' }}
                   onClick={() => handleSort('subscriberCount')}
                 >
                   구독자수{getSortIcon('subscriberCount')}
                 </th>
-                <th 
-                  scope="col" 
+                <th
+                  scope="col"
                   style={{ width: '170px', minWidth: '150px', cursor: 'pointer', whiteSpace: 'nowrap' }}
                   onClick={() => handleSort('publishedAt')}
                 >
                   게시일{getSortIcon('publishedAt')}
                 </th>
-                <th 
-                  scope="col" 
+                <th
+                  scope="col"
                   style={{ width: '110px', minWidth: '100px', cursor: 'pointer', whiteSpace: 'nowrap' }}
                   onClick={() => handleSort('duration')}
                 >
                   재생시간{getSortIcon('duration')}
                 </th>
-                <th 
-                  scope="col" 
+                <th
+                  scope="col"
                   style={{ width: '120px', minWidth: '100px', cursor: 'pointer', whiteSpace: 'nowrap' }}
                   onClick={() => handleSort('viewCount')}
                 >
                   조회수{getSortIcon('viewCount')}
                 </th>
-                <th 
-                  scope="col" 
+                <th
+                  scope="col"
                   style={{ width: '100px', minWidth: '90px', cursor: 'pointer', whiteSpace: 'nowrap' }}
                   onClick={() => handleSort('likeCount')}
                 >
                   좋아요{getSortIcon('likeCount')}
                 </th>
-                <th 
-                  scope="col" 
+                <th
+                  scope="col"
                   style={{ width: '100px', minWidth: '90px', cursor: 'pointer', whiteSpace: 'nowrap' }}
                   onClick={() => handleSort('commentCount')}
                 >
                   댓글수{getSortIcon('commentCount')}
                 </th>
-                <th 
-                  scope="col" 
+                <th
+                  scope="col"
                   style={{ width: '120px', minWidth: '110px', cursor: 'pointer', whiteSpace: 'nowrap' }}
                   onClick={() => handleSort('viewSubscriberRatio')}
                 >
                   성과지표{getSortIcon('viewSubscriberRatio')}
                 </th>
                 <th scope="col" style={{ width: '110px', minWidth: '100px', whiteSpace: 'nowrap' }}>성과레벨</th>
-                <th 
-                  scope="col" 
+                <th
+                  scope="col"
                   style={{ width: '110px', minWidth: '100px', cursor: 'pointer', whiteSpace: 'nowrap' }}
                   onClick={() => handleSort('engagementRate')}
                 >
                   참여율{getSortIcon('engagementRate')}
                 </th>
                 <th scope="col" style={{ width: '110px', minWidth: '100px', whiteSpace: 'nowrap' }}>참여레벨</th>
-                <th 
-                  scope="col" 
+                <th
+                  scope="col"
                   style={{ width: '90px', minWidth: '80px', cursor: 'pointer', whiteSpace: 'nowrap' }}
                   onClick={() => handleSort('type')}
                 >
@@ -617,7 +624,7 @@ export default function Home() {
                 }))
                 .map((video, index) => {
                   const ratioData = calculateViewSubscriberRatio(
-                    video.statistics.viewCount, 
+                    video.statistics.viewCount,
                     video.channelStatistics.subscriberCount
                   );
                   const engagementData = calculateEngagementRate(
@@ -629,8 +636,8 @@ export default function Home() {
                       <td className="text-center">{index + 1}</td>
                       <td>
                         <a href={`https://www.youtube.com/watch?v=${video.id}`} target="_blank" rel="noopener noreferrer">
-                          <img 
-                            src={video.snippet.thumbnails.medium.url} 
+                          <img
+                            src={video.snippet.thumbnails.medium.url}
                             alt={video.snippet.title}
                             className="img-thumbnail"
                             style={{ width: '80px', height: '60px', objectFit: 'cover' }}
@@ -638,12 +645,12 @@ export default function Home() {
                         </a>
                       </td>
                       <td>
-                        <a 
-                          href={`https://www.youtube.com/watch?v=${video.id}`} 
-                          target="_blank" 
-                          rel="noopener noreferrer" 
+                        <a
+                          href={`https://www.youtube.com/watch?v=${video.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
                           className="text-decoration-none text-dark fw-semibold"
-                          style={{ 
+                          style={{
                             display: '-webkit-box',
                             WebkitLineClamp: 2,
                             WebkitBoxOrient: 'vertical',
@@ -691,7 +698,7 @@ export default function Home() {
                         {formatNumber(video.statistics.likeCount)}
                       </td>
                       <td className="text-center fw-bold">
-                        {formatNumber(video.statistics.commentCount || '0')}
+                        {formatNumber(video.statistics.commentCount)}
                       </td>
                       <td className="text-center fw-bold">
                         {ratioData.ratio > 0 ? `${ratioData.ratio.toFixed(1)}배` : '계산불가'}
@@ -721,7 +728,7 @@ export default function Home() {
                 })}
             </tbody>
           </table>
-        </div>
+        </div>}
     </Layout>
   );
 }

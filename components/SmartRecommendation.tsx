@@ -153,7 +153,7 @@ const SmartRecommendation: React.FC<SmartRecommendationProps> = ({
                   {recommendation.description}
                 </p>
                 <button
-                  className={`btn btn-${recommendation.color} btn-sm w-100`}
+                  className="btn btn-outline-secondary btn-sm w-100"
                   onClick={recommendation.action}
                   disabled={loading}
                 >

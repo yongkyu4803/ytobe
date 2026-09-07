@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import GqaiIcon from './GqaiIcon';
 import {
   isFavoriteChannel,
   addFavoriteChannel,
@@ -9,7 +10,7 @@ interface FavoriteButtonProps {
   channelId: string;
   channelTitle: string;
   channelThumbnail?: string;
-  subscriberCount: string;
+  subscriberCount: string | null;
   size?: 'sm' | 'md' | 'lg';
   showText?: boolean;
   onToggle?: (isFavorite: boolean) => void;
@@ -81,8 +82,11 @@ export default function FavoriteButton({
   return (
     <button
       onClick={handleToggle}
-      className={`btn ${isFavorite ? 'btn-warning' : 'btn-outline-warning'} ${sizeClasses[size]}`}
+      className={`btn ${isFavorite ? 'btn-dark' : 'btn-outline-secondary'} ${sizeClasses[size]}`}
       title={isFavorite ? '즐겨찾기 해제' : '즐겨찾기 추가'}
+      aria-label={isFavorite ? '즐겨찾기 해제' : '즐겨찾기 추가'}
+      aria-pressed={isFavorite}
+      aria-busy={isLoading}
       disabled={isLoading}
       style={{
         display: 'flex',
@@ -95,7 +99,7 @@ export default function FavoriteButton({
         <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true" />
       ) : (
         <span style={{ fontSize: iconSizes[size] }}>
-          {isFavorite ? '⭐' : '☆'}
+          <GqaiIcon name="content-archive" size={20} />
         </span>
       )}
       {showText && !isLoading && (

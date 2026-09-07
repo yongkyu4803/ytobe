@@ -2,78 +2,40 @@ import { ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import NotificationDropdown from './NotificationDropdown';
+import GqaiIcon from './GqaiIcon';
 
-interface LayoutProps {
-  children: ReactNode;
-}
+const navigation = [
+  { href: '/', label: '키워드 검색', icon: 'action-search' },
+  { href: '/trending', label: '인기 추천', icon: 'content-data-dashboard' },
+  { href: '/favorites', label: '즐겨찾기', icon: 'content-archive' },
+];
 
-const Layout: React.FC<LayoutProps> = ({ children }) => {
+export default function Layout({ children }: { children: ReactNode }) {
   const router = useRouter();
-
   return (
-    <div className="min-vh-100">
-      {/* Header */}
-      <header className="bg-primary text-white py-3 shadow-sm">
-        <div className="container-fluid" style={{ maxWidth: '2000px', margin: '0 auto' }}>
-          <div className="row align-items-center" style={{ paddingLeft: 'max(1.5rem, 2vw)', paddingRight: 'max(1.5rem, 2vw)' }}>
-            <div className="col">
-              <h1 className="h4 mb-0 fw-bold">🎯 YouTube Analytics</h1>
-              <small className="text-light opacity-75">인기 동영상 검색 및 성과 분석</small>
-            </div>
-            <div className="col-auto">
-              <NotificationDropdown />
-            </div>
-          </div>
+    <div className="app-shell">
+      <a className="skip-link" href="#main-content">본문으로 이동</a>
+      <header className="app-header">
+        <div className="app-container header-inner">
+          <Link href="/" className="brand" aria-label="YouTube Analytics 홈">
+            <span className="brand-mark"><GqaiIcon name="content-data-dashboard" size={28} /></span>
+            <span><span className="brand-title">YouTube Analytics</span><span className="brand-description">인기 동영상 검색 및 성과 분석</span></span>
+          </Link>
+          <NotificationDropdown />
         </div>
+        <nav className="app-container" aria-label="주 메뉴">
+          <ul className="app-nav">
+            {navigation.map(item => <li key={item.href}>
+              <Link href={item.href} className={router.pathname === item.href ? 'active' : ''} aria-current={router.pathname === item.href ? 'page' : undefined}>
+                <GqaiIcon name={item.icon} />{item.label}
+              </Link>
+            </li>)}
+            <li><span className="nav-unavailable"><GqaiIcon name="content-analysis-report" />트렌드 분석 <small>준비중</small></span></li>
+          </ul>
+        </nav>
       </header>
-
-      {/* Navigation */}
-      <nav className="bg-light border-bottom">
-        <div className="container-fluid" style={{ maxWidth: '2000px', margin: '0 auto' }}>
-          <div style={{ paddingLeft: 'max(1.5rem, 2vw)', paddingRight: 'max(1.5rem, 2vw)' }}>
-            <ul className="nav nav-pills py-3">
-              <li className="nav-item">
-                <Link href="/" className={`nav-link ${router.pathname === '/' ? 'active' : ''}`}>
-                  🔍 키워드 검색
-                </Link>
-              </li>
-              <li className="nav-item">
-                <Link href="/trending" className={`nav-link ${router.pathname === '/trending' ? 'active' : ''}`}>
-                  🎯 인기 추천
-                </Link>
-              </li>
-              <li className="nav-item">
-                <Link href="/favorites" className={`nav-link ${router.pathname === '/favorites' ? 'active' : ''}`}>
-                  ⭐ 즐겨찾기
-                </Link>
-              </li>
-              <li className="nav-item">
-                <Link href="/analytics" className={`nav-link ${router.pathname === '/analytics' ? 'active' : ''} disabled`}>
-                  📊 트렌드 분석 <small className="text-muted">(준비중)</small>
-                </Link>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </nav>
-
-      {/* Main Content */}
-      <main className="container-fluid py-4" style={{ maxWidth: '2000px', margin: '0 auto' }}>
-        <div style={{ paddingLeft: 'max(1.5rem, 2vw)', paddingRight: 'max(1.5rem, 2vw)' }}>
-          {children}
-        </div>
-      </main>
-
-      {/* Footer */}
-      <footer className="bg-light text-center py-3 mt-auto border-top">
-        <div className="container-fluid">
-          <small className="text-muted">
-            © 2024 YouTube Analytics • Powered by YouTube Data API v3
-          </small>
-        </div>
-      </footer>
+      <main id="main-content" className="app-container app-main">{children}</main>
+      <footer className="app-footer"><div className="app-container footer-inner"><span>YouTube Analytics</span><small>Powered by YouTube Data API v3</small></div></footer>
     </div>
   );
-};
-
-export default Layout;
+}

@@ -5,9 +5,6 @@ export default async function handler(req, res) {
   const { query, publishedAfter } = req.query;
 
   // 디버깅용 로그
-  console.log('API Key exists:', !!process.env.YOUTUBE_API_KEY);
-  console.log('API Key length:', process.env.YOUTUBE_API_KEY?.length);
-  console.log('API Key first 10 chars:', process.env.YOUTUBE_API_KEY?.substring(0, 10));
   console.log('Environment:', process.env.NODE_ENV);
   console.log('Query received:', query);
   console.log('PublishedAfter received:', publishedAfter);
@@ -28,9 +25,8 @@ export default async function handler(req, res) {
   }
 
   // 임시 테스트용 - 배포 전에 반드시 제거할 것!
-  const apiKey = process.env.YOUTUBE_API_KEY || 'AIzaSyAP91a4OyzrJ0tFUj4AieVn5IMYr_LYiBc';
+  const apiKey = process.env.YOUTUBE_API_KEY;
   
-  console.log('Using API Key:', apiKey.substring(0, 10) + '...');
 
   try {
     // 1. 검색 API 호출 (결과 50개로 증가)
@@ -49,7 +45,6 @@ export default async function handler(req, res) {
       console.log('Adding publishedAfter to search params:', publishedAfter);
     }
 
-    console.log('Final search params:', searchParams);
 
     const searchResponse = await axios.get('https://www.googleapis.com/youtube/v3/search', {
       params: searchParams,
@@ -107,7 +102,7 @@ export default async function handler(req, res) {
 
       return {
         ...video,
-        channelStatistics: channelStatsMap.get(video.snippet.channelId) || { subscriberCount: '0' },
+        channelStatistics: channelStatsMap.get(video.snippet.channelId) || { subscriberCount: null },
         isShorts,
         durationInSeconds,
       };

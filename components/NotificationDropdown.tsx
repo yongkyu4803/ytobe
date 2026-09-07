@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import GqaiIcon from './GqaiIcon';
 import {
   getNotifications,
   getUnreadNotificationCount,
@@ -67,11 +68,12 @@ export default function NotificationDropdown() {
     <div className="position-relative">
       {/* 알림 벨 버튼 */}
       <button
-        className="btn btn-outline-light position-relative"
+        className="btn btn-outline-secondary position-relative"
         onClick={() => setShowDropdown(!showDropdown)}
-        style={{ border: 'none' }}
+        aria-label="알림"
+        aria-expanded={showDropdown}
       >
-        <span style={{ fontSize: '1.5rem' }}>🔔</span>
+        <GqaiIcon name="reaction-attention" size={24} />
         {unreadCount > 0 && (
           <span
             className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
@@ -96,7 +98,7 @@ export default function NotificationDropdown() {
           <div
             className="position-absolute end-0 bg-white shadow-lg rounded-3 border"
             style={{
-              width: '380px',
+              width: 'min(380px, calc(100vw - 40px))',
               maxHeight: '500px',
               zIndex: 1050,
               top: 'calc(100% + 0.5rem)',

@@ -38,3 +38,11 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/pages/building-your-application/deploying) for more details.
+
+## DB 수집 운영
+
+개인용 자동 수집과 통계 이력 운영은 [DB 운영 문서](docs/database-collection.md)를 참고하세요.
+
+- `npm test`: 수집기 단위 테스트
+- `npm run test:db`: 별도 PostgreSQL 15 컨테이너에서 DB 통합 테스트
+- `npm run collect`: 수집 예정 채널의 다음 배치 수동 실행

@@ -13,10 +13,10 @@ interface TrendingCategoriesProps {
   activeCategory: string;
 }
 
-const TrendingCategories: React.FC<TrendingCategoriesProps> = ({ 
-  onCategorySelect, 
-  loading, 
-  activeCategory 
+const TrendingCategories: React.FC<TrendingCategoriesProps> = ({
+  onCategorySelect,
+  loading,
+  activeCategory
 }) => {
   const [showAdvanced, setShowAdvanced] = useState(false);
 
@@ -41,7 +41,7 @@ const TrendingCategories: React.FC<TrendingCategoriesProps> = ({
   return (
     <div className="mb-4">
       <div className="d-flex justify-content-between align-items-center mb-3">
-        <h5 className="mb-0">📂 카테고리 선택</h5>
+        <h5 className="mb-0">카테고리 선택</h5>
         <button
           className="btn btn-outline-secondary btn-sm"
           onClick={() => setShowAdvanced(!showAdvanced)}
@@ -57,16 +57,17 @@ const TrendingCategories: React.FC<TrendingCategoriesProps> = ({
             <div key={category.id} className="col-md-6 col-lg-4 col-xl-3">
               <button
                 className={`btn w-100 text-start ${
-                  activeCategory === category.id 
-                    ? 'btn-primary' 
+                  activeCategory === category.id
+                    ? 'btn-dark'
                     : 'btn-outline-primary'
                 }`}
                 onClick={() => onCategorySelect(category.id)}
                 disabled={loading}
+                aria-pressed={activeCategory === category.id}
                 title={category.description}
               >
                 <div className="d-flex align-items-center">
-                  <span className="me-2">{category.icon}</span>
+
                   <span className="small">{category.name.replace(category.icon + ' ', '')}</span>
                 </div>
               </button>
@@ -79,22 +80,23 @@ const TrendingCategories: React.FC<TrendingCategoriesProps> = ({
       {showAdvanced && (
         <div className="mb-3">
           <hr className="my-3" />
-          <h6 className="text-muted mb-3">🎯 고급 카테고리</h6>
+          <h6 className="text-muted mb-3">고급 카테고리</h6>
           <div className="row g-3">
             {advancedCategories.map(category => (
               <div key={category.id} className="col-md-6 col-lg-4 col-xl-3">
                 <button
                   className={`btn w-100 text-start ${
-                    activeCategory === category.id 
-                      ? 'btn-primary' 
+                    activeCategory === category.id
+                      ? 'btn-dark'
                       : 'btn-outline-primary'
                   }`}
                   onClick={() => onCategorySelect(category.id)}
                   disabled={loading}
+                aria-pressed={activeCategory === category.id}
                   title={category.description}
                 >
                   <div className="d-flex align-items-center">
-                    <span className="me-2">{category.icon}</span>
+
                     <span className="small">{category.name.replace(category.icon + ' ', '')}</span>
                   </div>
                 </button>

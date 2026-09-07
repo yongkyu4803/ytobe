@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import axios from 'axios';
+import { getCollectedVideos } from '../../lib/collectedVideos';
 
 interface ChannelVideosRequest {
   channelId: string;
@@ -17,8 +18,21 @@ export default async function handler(
     return res.status(400).json({ message: '채널 ID가 필요합니다.' });
   }
 
+  if (req.method !== 'GET') return res.status(405).json({message:'GET 요청이 필요합니다.'});
+  if (typeof channelId !== 'string' || !/^[A-Za-z0-9_-]{1,80}$/.test(channelId)) return res.status(400).json({message:'올바른 채널 ID가 필요합니다.'});
+  const limit = Number(maxResults);
+  if (!Number.isInteger(limit) || limit < 1 || limit > 50) return res.status(400).json({message:'조회 개수는 1~50 사이여야 합니다.'});
+  if (publishedAfter && (typeof publishedAfter !== 'string' || !Number.isFinite(Date.parse(publishedAfter)))) return res.status(400).json({message:'올바른 날짜가 필요합니다.'});
+  try {
+    const cached = await getCollectedVideos(channelId,limit,publishedAfter);
+    if(cached) return res.status(200).json(cached);
+  } catch {
+    return res.status(503).json({message:'저장된 영상을 불러오지 못했습니다. 잠시 후 다시 시도하세요.'});
+  }
+
+  // First collection is pending: preserve live lookup for a newly added channel.
   // API 키 확인
-  const apiKey = process.env.YOUTUBE_API_KEY || 'AIzaSyAP91a4OyzrJ0tFUj4AieVn5IMYr_LYiBc';
+  const apiKey = process.env.YOUTUBE_API_KEY;
 
   if (!apiKey) {
     console.error('YOUTUBE_API_KEY is not set!');
@@ -78,7 +92,7 @@ export default async function handler(
     });
 
     const channelData = channelResponse.data.items?.[0];
-    const channelStatistics = channelData?.statistics || { subscriberCount: '0' };
+    const channelStatistics = channelData?.statistics || { subscriberCount: null };
     const channelSnippet = channelData?.snippet || {};
 
     // 4. 동영상 정보와 채널 정보 결합
@@ -106,12 +120,14 @@ export default async function handler(
     });
 
     res.status(200).json({
+      source: 'youtube',
+      collectedAt: new Date().toISOString(),
       items: combinedDetails,
       channelInfo: {
         channelId,
         channelTitle: channelSnippet.title || '',
         channelThumbnail: channelSnippet.thumbnails?.default?.url || '',
-        subscriberCount: channelStatistics.subscriberCount || '0',
+        subscriberCount: channelStatistics.hiddenSubscriberCount ? null : channelStatistics.subscriberCount ?? null,
       }
     });
 

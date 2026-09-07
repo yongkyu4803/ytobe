@@ -1,3 +1,4 @@
+import { formatMetric } from '../utils/metrics';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import Head from 'next/head';
@@ -39,17 +40,7 @@ type SortField = 'index' | 'title' | 'channelTitle' | 'subscriberCount' | 'publi
 type SortOrder = 'asc' | 'desc';
 
 // 유틸리티 함수들 (index.tsx에서 복사)
-const formatNumber = (numStr: string): string => {
-  const num = parseInt(numStr, 10);
-  if (isNaN(num)) return '0';
-  if (num >= 100000000) {
-    return `${(num / 100000000).toFixed(1).replace(/\.0$/, '')}억`;
-  }
-  if (num >= 10000) {
-    return `${Math.floor(num / 10000)}만`;
-  }
-  return new Intl.NumberFormat('ko-KR').format(num);
-};
+const formatNumber = formatMetric;
 
 const formatDuration = (seconds: number): string => {
   const hours = Math.floor(seconds / 3600);
@@ -264,8 +255,8 @@ export default function TrendingPage() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <div className="text-center mb-4">
-        <h2 className="display-6 fw-bold text-primary mb-2">🎯 인기 동영상 추천</h2>
+      <div className="page-heading">
+        <h2 className="display-6 fw-bold text-primary mb-2">인기 동영상 추천</h2>
         <p className="lead text-muted">실시간 트렌딩 콘텐츠와 AI 기반 스마트 추천을 발견하세요</p>
       </div>
 
@@ -275,14 +266,16 @@ export default function TrendingPage() {
           <div className="btn-group" role="group" aria-label="추천 모드">
             <button
               type="button"
-              className={`btn ${viewMode === 'category' ? 'btn-primary' : 'btn-outline-primary'}`}
+              className={`btn ${viewMode === 'category' ? 'btn-dark' : 'btn-outline-primary'}`}
+              aria-pressed={viewMode === 'category'}
               onClick={() => setViewMode('category')}
             >
               📂 카테고리 추천
             </button>
             <button
               type="button"
-              className={`btn ${viewMode === 'smart' ? 'btn-primary' : 'btn-outline-primary'}`}
+              className={`btn ${viewMode === 'smart' ? 'btn-dark' : 'btn-outline-primary'}`}
+              aria-pressed={viewMode === 'smart'}
               onClick={() => setViewMode('smart')}
             >
               🤖 AI 스마트 추천
@@ -486,7 +479,7 @@ export default function TrendingPage() {
                         {formatNumber(video.statistics.likeCount)}
                       </td>
                       <td className="text-center fw-bold">
-                        {formatNumber(video.statistics.commentCount || '0')}
+                        {formatNumber(video.statistics.commentCount)}
                       </td>
                       <td className="text-center fw-bold">
                         {ratioData.ratio > 0 ? `${ratioData.ratio.toFixed(1)}배` : '계산불가'}
