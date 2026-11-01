@@ -8,6 +8,8 @@ const navigation = [
   { href: '/trending', label: '인기 추천' },
   { href: '/favorites', label: '즐겨찾기' },
   { href: '/rising', label: '급상승 영상' },
+  { href: '/channels', label: '채널 탐색' },
+  { href: '/keywords', label: '인기 키워드' },
 ];
 
 export default function Layout({ children }: { children: ReactNode }) {
@@ -24,11 +26,11 @@ export default function Layout({ children }: { children: ReactNode }) {
         </div>
         <nav className="app-container" aria-label="주 메뉴">
           <ul className="app-nav">
-            {navigation.map(item => <li key={item.href}>
-              <Link href={item.href} className={router.pathname === item.href ? 'active' : ''} aria-current={router.pathname === item.href ? 'page' : undefined}>
+            {navigation.map(item => { const active = router.pathname === item.href || (item.href !== '/' && router.pathname.startsWith(`${item.href}/`)); return <li key={item.href}>
+              <Link href={item.href} className={active ? 'active' : ''} aria-current={active ? 'page' : undefined}>
                 {item.label}
               </Link>
-            </li>)}
+            </li>; })}
           </ul>
         </nav>
       </header>

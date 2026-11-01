@@ -43,6 +43,8 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/pages/b
 
 개인용 자동 수집과 통계 이력 운영은 [DB 운영 문서](docs/database-collection.md)를 참고하세요.
 
+채널 탐색·카테고리 필터·인기 키워드 추가 계획은 [구현 계획 문서](docs/channel-explore-keywords-plan.md)를 참고하세요.
+
 - `npm test`: 수집기 단위 테스트
 - `npm run test:db`: 별도 PostgreSQL 15 컨테이너에서 DB 통합 테스트
 - `npm run collect`: 수집 예정 채널의 다음 배치 수동 실행

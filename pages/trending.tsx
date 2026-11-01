@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import Head from 'next/head';
 import Layout from '../components/Layout';
+import UsageLimitNotice from '../components/UsageLimitNotice';
 import TrendingCategories from '../components/TrendingCategories';
 import SmartRecommendation from '../components/SmartRecommendation';
 import FavoriteButton from '../components/FavoriteButton';
@@ -259,6 +260,8 @@ export default function TrendingPage() {
         <h2 className="display-6 fw-bold text-primary mb-2">인기 동영상 추천</h2>
         <p className="lead text-muted">실시간 트렌딩 콘텐츠와 AI 기반 스마트 추천을 발견하세요</p>
       </div>
+
+      <UsageLimitNotice variant="compact" scope="search" />
 
       {/* 추천 모드 선택 */}
       <div className="mb-4">

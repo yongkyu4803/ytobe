@@ -14,4 +14,6 @@ docker exec -i "$container_name" psql -U postgres -v ON_ERROR_STOP=1 < migration
 docker exec -i "$container_name" psql -U postgres -v ON_ERROR_STOP=1 < migrations/20260907_collection_hardening.sql >/dev/null
 docker exec -i "$container_name" psql -U postgres -v ON_ERROR_STOP=1 < migrations/20260907_full_collection.sql >/dev/null
 docker exec -i "$container_name" psql -U postgres -v ON_ERROR_STOP=1 < migrations/20260907_rising_videos.sql >/dev/null
+docker exec -i "$container_name" psql -U postgres -v ON_ERROR_STOP=1 < migrations/20261101_channel_explore.sql >/dev/null
 docker exec -i "$container_name" psql -U postgres -v ON_ERROR_STOP=1 < tests/database.sql
+docker exec -i "$container_name" psql -U postgres -v ON_ERROR_STOP=1 < tests/explore_database.sql

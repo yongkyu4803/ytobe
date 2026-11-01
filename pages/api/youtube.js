@@ -1,5 +1,6 @@
 
 import axios from 'axios';
+import { registerDiscoveredChannels } from '../../lib/server/registerChannels';
 
 export default async function handler(req, res) {
   const { query, publishedAfter } = req.query;
@@ -115,6 +116,7 @@ export default async function handler(req, res) {
       return viewCountB - viewCountA;
     });
 
+    await registerDiscoveredChannels(videoDetails);
     res.status(200).json({ items: combinedDetails });
 
   } catch (error) {

@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import Head from 'next/head';
 import Layout from '../components/Layout';
+import UsageLimitNotice from '../components/UsageLimitNotice';
 import GqaiIcon from '../components/GqaiIcon';
 import FavoriteButton from '../components/FavoriteButton';
 
@@ -367,6 +368,8 @@ export default function Home() {
         <h2 className="display-6 fw-bold text-primary mb-2">키워드 검색</h2>
         <p className="lead text-muted">원하는 키워드로 YouTube 동영상을 검색하고 상세 분석을 확인하세요</p>
       </div>
+
+      <UsageLimitNotice variant="compact" scope="search" />
 
       <form onSubmit={searchVideos} className="mb-4">
         <div className="row justify-content-center">

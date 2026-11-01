@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { registerDiscoveredChannels } from '../../lib/server/registerChannels';
 
 export default async function handler(req, res) {
   const { category, regionCode = 'KR', maxResults = 50 } = req.query;
@@ -89,6 +90,7 @@ export default async function handler(req, res) {
 
     console.log(`Successfully fetched ${combinedDetails.length} trending videos for category: ${category || 'all'}`);
 
+    await registerDiscoveredChannels(videoDetails);
     res.status(200).json({ items: combinedDetails });
 
   } catch (error) {

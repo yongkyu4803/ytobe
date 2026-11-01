@@ -14,6 +14,8 @@ interface FavoriteButtonProps {
   size?: 'sm' | 'md' | 'lg';
   showText?: boolean;
   onToggle?: (isFavorite: boolean) => void;
+  /** Known state from a list query; skips the per-button lookup. */
+  initialFavorite?: boolean;
 }
 
 export default function FavoriteButton({
@@ -24,17 +26,19 @@ export default function FavoriteButton({
   size = 'md',
   showText = false,
   onToggle,
+  initialFavorite,
 }: FavoriteButtonProps) {
-  const [isFavorite, setIsFavorite] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(initialFavorite ?? false);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
+    if (initialFavorite !== undefined) return;
     const checkFavorite = async () => {
       const result = await isFavoriteChannel(channelId);
       setIsFavorite(result);
     };
     checkFavorite();
-  }, [channelId]);
+  }, [channelId, initialFavorite]);
 
   const handleToggle = async (e: React.MouseEvent) => {
     e.preventDefault();

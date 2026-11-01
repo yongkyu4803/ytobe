@@ -30,6 +30,8 @@ Next.js **Pages Router** app (not App Router) — routes live in `pages/`, API r
 - `pages/favorites.tsx` — favorite channels grouped by folder, drives `components/FolderManager.tsx` and per-channel notification checks via `pages/api/channel-videos.ts`.
 - `components/FavoriteButton.tsx`, `components/NotificationDropdown.tsx` — read/write through `utils/supabaseFavorites.ts` directly (client components calling Supabase, not API routes).
 - `components/SmartRecommendation.tsx` + `utils/smartRecommendation.ts` — time-of-day-based category recommendation engine (maps hour ranges to YouTube category IDs) that also calls the YouTube API.
+- `pages/channels.tsx` (channel explore filters + `components/CategoryFilterModal.tsx`) and `pages/keywords/` (Shorts keyword ranking) read Supabase RPCs (`youtube_app_search_channels`, `youtube_app_topic_counts`, `youtube_app_keyword_ranking`, …) filled by the `youtube-app-explore` Edge Function. Shared collector code lives in `supabase/functions/_shared/`. See `docs/channel-explore-keywords-plan.md` and `docs/database-collection.md`.
+- `components/UsageLimitNotice.tsx` — shows the YouTube free-quota constraints and today's collector usage; keep it on any screen whose data depends on the quota.
 - `components/Layout.tsx` — shared page chrome; styling is Bootstrap 5 (`bootstrap` npm package + `styles/globals.css`/`styles/Home.module.css`), not Tailwind.
 
 ### Environment variables
@@ -37,4 +39,4 @@ Next.js **Pages Router** app (not App Router) — routes live in `pages/`, API r
 - `YOUTUBE_API_KEY` — server-only, used in all `pages/api/*` routes.
 - `SUPABASE_URL` / `SUPABASE_KEY` and `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_KEY` — `lib/supabase.ts` checks the `NEXT_PUBLIC_*` vars first, falling back to the non-prefixed ones.
 
-**Security note:** `pages/api/youtube.js`, `pages/api/trending.js`, and `pages/api/channel-videos.ts` each fall back to a hardcoded YouTube API key literal when `YOUTUBE_API_KEY` is unset. This key is committed to source control — treat it as compromised and do not rely on the fallback; always set `YOUTUBE_API_KEY` in the environment, and consider rotating/removing the hardcoded key.
+**API key exposure (known and accepted):** the API routes once fell back to a hardcoded `YOUTUBE_API_KEY` literal. The fallback is gone from the source, but the key is still reachable in this public repo's git history. The owner has decided not to rotate it — the free tier carries no billing risk, and the practical downside is only that someone else could burn the 10,000 units/day. Don't re-raise this; just never reintroduce a hardcoded fallback.

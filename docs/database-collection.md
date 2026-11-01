@@ -64,6 +64,7 @@ Vercel에서 `YOUTUBE_APP_PASSWORD`를 변경하면 새 배포를 실행해야 �
 3. `migrations/20260907_collection_hardening.sql` — 익명 쓰기 차단, 전역 실행 한도, 알림·커밋 복구 보완.
 4. `migrations/20260907_full_collection.sql` — 재개 가능한 전체 수집 작업과 진행 상태.
 5. `migrations/20260907_rising_videos.sql` — 즐겨찾기 채널의 급상승 영상 순위 뷰.
+6. `migrations/20261101_channel_explore.sql`, `20261101_explore_claim_limit.sql`, `20261101_explore_schedule.sql` — 채널 탐색·인기 키워드(아래 절).
 
 공유 프로젝트 전체에 `db reset`이나 무차별 migration push를 실행하지 않는다. 이번 파일만 CLI의 linked query로 적용했다. 첫 번째 파일은 일회성 마이그레이션이므로 운영 DB에 재실행하지 않는다.
 
@@ -106,6 +107,50 @@ SELECT cron.unschedule('youtube-app-collection');
 실행 중인 수집이 끝났는지 확인하고 신규 테이블과 기존 데이터 모두를 백업한다. 수집 코드 문제는 Edge Function을 검증된 버전으로 되돌린 뒤 재배포한다. 스키마를 즉시 삭제할 필요는 없다. 재개할 때는 schedule 마이그레이션으로 해당 앱의 예약을 복원한다.
 
 원본 데이터 백업 위치: `~/.codex/backups/youtube-app/before-db-upgrade-20260907.json`. 백업을 운영에 덮어쓰면 이후 추가한 즐겨찾기·폴더·알림이 사라질 수 있으므로, 먼저 별도 DB로 복원해 현재 데이터와 대조한다. 개인 콘텐츠가 포함된 백업은 Git에 넣지 않는다.
+
+## 채널 탐색·인기 키워드 (2026-11-01 추가)
+
+계획과 범위 결정: [구현 계획 문서](channel-explore-keywords-plan.md). 즐겨찾기 수집과 별개인 탐색 수집을 추가했다. 이에 따라 "검색 결과의 모든 채널을 추적하지 않는다" 원칙을 바꿨다. 탐색 채널은 **채널 통계만** 추적하며 알림·영상 전체 수집 대상이 아니다.
+
+| 객체 | 역할 |
+| --- | --- |
+| `youtube_app_channels` 추가 열 | `country`, `topic_ids`, `explore_status`(pending/active/excluded/unavailable), `discovered_via`, 일일 통계·Shorts 커서, `view_delta_1d/2d/7d/30d`, `views_stale` |
+| `youtube_app_videos` 추가 열 | `tags`, `explore_next_at`(탐색 Shorts 일일 갱신 커서) |
+| `youtube_app_video_keywords` | 영상별 키워드(수집기가 해시태그·태그·제목에서 추출) |
+| `youtube_app_keyword_daily` | 한국 시간 하루 단위 키워드별 조회 증가량. 하루 2개 이상 채널에 등장한 키워드만 저장 |
+| `youtube_app_saved_keywords` | 내 키워드. 쓰기는 세션 확인 API `/api/keywords/saved` |
+| `youtube_app_explore_runs` | 탐색 작업 로그. `api_units`는 유닛 기준(search.list=100) |
+
+- 채널 풀: 상한 20,000개, 구독자 1,000명 미만은 `excluded`(30일 뒤 재확인), API가 돌려주지 않는 채널은 `unavailable`. 인기 차트(KR/US/JP × 카테고리), 하루 10회 채널 검색, 키워드 검색·인기 추천 화면에서 받은 채널로 늘린다.
+- 증감: 채널 스냅샷의 UTC 하루 버킷끼리 정확히 N일 차이만 비교한다. 이력이 없으면 NULL. 전날과 총 조회수가 같으면 `views_stale=true`, 1일 증감은 NULL.
+- Shorts: 최근 7일 증감 상위 KR 채널 800개의 업로드 첫 페이지를 하루 1회 확인해 180초 이하 영상만 저장하고, 게시 30일 이내 영상은 하루 1회 통계를 갱신한다.
+- 보관: 즐겨찾기가 아닌 채널의 채널·영상 스냅샷과 키워드 일별 집계는 60일 보관(`youtube_app_explore_retention`, 키워드 집계 예약에서 실행).
+
+예약(`migrations/20261101_explore_schedule.sql`, 기존 Vault 항목 재사용):
+
+| Cron | UTC | 작업 |
+| --- | --- | --- |
+| `youtube-app-explore-discover` | `30 8 * * *` | 채널 발견 |
+| `youtube-app-explore-stats` | `*/10 * * * *` | 도래 채널 1,000개 통계 |
+| `youtube-app-explore-shorts` | `5-59/10 * * * *` | Shorts 갱신 1,000개 + 채널 100개 스캔 |
+| `youtube-app-keywords` | `40 15 * * *` | 전날·전전날(KST) 키워드 집계 + 보관 정리 |
+
+할당량 보호: 수집기 합계(`youtube_app_api_units_today`)가 4,500유닛을 넘으면 채널 검색을, 6,000유닛을 넘으면 탐색 작업 전체를 건너뛴다. YouTube 할당량 오류가 한 번이라도 나면 그 태평양 시간 하루 동안 탐색 작업을 멈춘다. 화면의 검색·인기 추천 호출은 기록되지 않으므로 이 합계에 포함되지 않는다. 화면에는 `UsageLimitNotice`로 제약사항과 당일 수집 사용량을 표시한다.
+
+```sh
+npm run explore -- discover   # 또는 stats, shorts: 작업 1회 수동 실행
+supabase db query --linked "SELECT youtube_app_explore_status()"
+supabase db query --linked "SELECT job,status,api_units,items,error_code,started_at FROM youtube_app_explore_runs ORDER BY started_at DESC LIMIT 20"
+```
+
+탐색만 중지할 때(즐겨찾기 수집은 유지):
+
+```sql
+SELECT cron.unschedule(j) FROM unnest(ARRAY['youtube-app-explore-discover','youtube-app-explore-stats',
+  'youtube-app-explore-shorts','youtube-app-keywords']) j;
+```
+
+적용 기록(2026-11-01): `20261101_channel_explore.sql` → 두 함수 배포 → 수동 실행(발견 2,254개 등록·1,054유닛, 통계 1,000개·20유닛, Shorts 2,464개·165유닛) → `20261101_explore_claim_limit.sql`(1,000행 상한 보정) → `20261101_explore_schedule.sql`.
 
 ## 공식 참고
 

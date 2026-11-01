@@ -3,3 +3,5 @@ project_id = "youtube-app"
 major_version = 15
 [functions.youtube-app-sync]
 verify_jwt = false
+[functions.youtube-app-explore]
+verify_jwt = false
