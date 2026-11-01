@@ -24,12 +24,16 @@ h1, h2, h3, p { word-break: keep-all; overflow-wrap: anywhere; }
 .app-shell { display: flex; min-height: 100vh; flex-direction: column; }
 .app-container { width: 100%; max-width: var(--gqai-content-max); margin-inline: auto; padding-inline: 24px; }
 .app-header { position: sticky; top: 0; z-index: 1030; background: var(--gqai-canvas); border-bottom: 1px solid var(--gqai-hairline); }
-.header-inner { display: flex; justify-content: space-between; align-items: center; gap: 24px; padding-block: 24px; }
-.brand { display: flex; align-items: center; gap: 12px; }
-.brand-title { display: block; font-size: 20px; font-weight: 500; letter-spacing: -.025em; }
-.brand-description { display: block; color: var(--gqai-ink-mute); font-size: 12px; margin-top: 4px; }
-.app-nav { display: flex; flex-wrap: wrap; list-style: none; gap: 8px 24px; padding: 0; margin: 0; }
-.app-nav a, .nav-unavailable { display: flex; align-items: center; gap: 8px; padding: 16px 4px; font-size: 14px; border-bottom: 2px solid transparent; }
+/* Header: brand, menu and actions on one row (desktop); menu becomes a scrollable second row on mobile. */
+.header-bar { display: flex; align-items: stretch; gap: 32px; min-height: 64px; }
+.brand { display: flex; align-items: center; flex: 0 0 auto; min-width: 0; }
+.brand-title { display: block; font-size: 18px; font-weight: 500; letter-spacing: -.025em; white-space: nowrap; }
+.header-nav { display: flex; flex: 1 1 auto; min-width: 0; }
+.app-nav { position: relative; display: flex; flex-wrap: nowrap; align-items: stretch; list-style: none; gap: 0 24px; padding: 0; margin: 0; overflow-x: auto; scrollbar-width: none; }
+.app-nav::-webkit-scrollbar { display: none; }
+.app-nav li { display: flex; }
+.app-nav a, .nav-unavailable { display: flex; align-items: center; gap: 8px; padding: 0 4px; font-size: 14px; white-space: nowrap; border-bottom: 2px solid transparent; }
+.header-actions { display: flex; align-items: center; flex: 0 0 auto; margin-left: auto; }
 .app-nav a { color: var(--gqai-ink-mute); }
 .app-nav a:hover { color: var(--gqai-ink); background: var(--gqai-canvas-soft); }
 .app-nav a.active { color: var(--gqai-ink); border-bottom-color: var(--gqai-primary); font-weight: 500; }
@@ -93,11 +97,6 @@ h1, h2, h3, p { word-break: keep-all; overflow-wrap: anywhere; }
 .auth-card .page-heading { margin-bottom: 32px; }
 @media (max-width: 767px) {
   .app-container { padding-inline: 20px; }
-  .header-inner { padding-block: 20px; gap: 12px; }
-  .brand-title { font-size: 17px; }
-  .brand-description { font-size: 10px; }
-  .app-nav { gap: 0 16px; }
-  .app-nav a, .nav-unavailable { font-size: 12px; gap: 6px; padding-block: 12px; }
   .app-nav .gqai-icon { width: 16px; height: 16px; }
   .app-main { padding-block: 36px 56px; }
   .page-heading h2 { font-size: 30px; }
@@ -114,20 +113,18 @@ h1, h2, h3, p { word-break: keep-all; overflow-wrap: anywhere; }
 .search-empty p { font-size: 14px; }
 .badge.bg-primary { background: var(--gqai-canvas-soft) !important; }
 
-.brand { gap: 16px; min-width: 0; }
 .app-nav .gqai-icon { width: 24px; height: 24px; }
-.app-nav a { min-height: 44px; }
-@media (max-width: 767px) {
-  .brand { gap: 12px; }
-  .brand-title { font-size: 15px; }
-  .brand-description { display: none; }
-  .app-nav { flex-wrap: nowrap; overflow-x: auto; }
-  .app-nav a { white-space: nowrap; font-size: 14px; }
-}
-@media (max-width: 380px) {
-  .brand-title { font-size: 13px; }
-  .header-inner { gap: 8px; }
-}
 
 /* KIMM is reserved for page titles; UI labels and reading text use the body stack. */
 .page-heading h2, .rising-heading h1 { font-family: var(--gqai-font-display); font-weight: 700 !important; }
+
+@media (max-width: 767px) {
+  .header-bar { flex-wrap: wrap; gap: 0; min-height: 0; }
+  .brand { order: 1; min-height: 60px; }
+  .header-actions { padding-top: 6px; }
+  .brand-title { font-size: 16px; }
+  .header-actions { order: 2; }
+  .header-nav { order: 3; flex-basis: 100%; margin-inline: -20px; padding-inline: 20px; border-top: 1px solid var(--gqai-hairline-cool); }
+  .app-nav { gap: 0 18px; }
+  .app-nav a { min-height: 42px; font-size: 13px; }
+}

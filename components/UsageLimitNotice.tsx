@@ -8,10 +8,11 @@ type ExploreStatus = { units_today: number; quota_paused: boolean };
 
 /**
  * Explains the YouTube Data API free-quota limits that shape what this app can show.
- * `compact` is a single line for search/trending screens; the full variant lists every constraint.
+ * `compact` is a single line for search/trending screens; `inline` is a pill that opens the full list
+ * as a popover (for page headers); the full variant lists every constraint in place.
  */
 export default function UsageLimitNotice({ variant = 'full', scope = 'channels' }: {
-  variant?: 'full' | 'compact';
+  variant?: 'full' | 'compact' | 'inline';
   scope?: 'channels' | 'keywords' | 'search';
 }) {
   const [status, setStatus] = useState<ExploreStatus | null>(null);
@@ -48,13 +49,15 @@ export default function UsageLimitNotice({ variant = 'full', scope = 'channels' 
     );
   }
 
+  const inline = variant === 'inline';
   return (
-    <details className="usage-notice" role="note">
+    <details className={`usage-notice ${inline ? 'inline' : ''}`} role="note">
       <summary>
         <GqaiIcon name="status-warning" size={18} />
-        <strong>사용량에 따른 제약사항</strong>
-        <span className="usage-summary">무료 할당량 안에서 수집하므로 범위와 갱신 주기가 제한됩니다.</span>
-        {usage}
+        <strong>{inline ? '사용량 제약' : '사용량에 따른 제약사항'}</strong>
+        {!inline && <span className="usage-summary">무료 할당량 안에서 수집하므로 범위와 갱신 주기가 제한됩니다.</span>}
+        {inline && status && <span className="usage-meter">오늘 {Number(status.units_today).toLocaleString('ko-KR')} / {DAILY_LIMIT.toLocaleString('ko-KR')}유닛{status.quota_paused ? ' · 수집 중지' : ''}</span>}
+        {!inline && usage}
       </summary>
       <ul>
         <li>YouTube Data API 무료 할당량은 하루 10,000유닛이며, 자동 수집과 키워드 검색·인기 추천 화면이 함께 씁니다. 미국 태평양 시간 자정(한국 시간 오후 4~5시)에 초기화됩니다.</li>
@@ -79,6 +82,15 @@ export default function UsageLimitNotice({ variant = 'full', scope = 'channels' 
         summary :global(.usage-meter) { width: 100%; color: var(--gqai-ink-mute); font-size: 12px; }
         ul { margin: var(--gqai-space-3) 0 0; padding-left: 20px; color: var(--gqai-ink-secondary); line-height: 1.7; }
         li + li { margin-top: 4px; }
+        .inline { position: relative; margin: 0; padding: 0; background: none; border: 0; }
+        .inline summary { flex-wrap: nowrap; gap: 6px; min-height: 36px; padding: 6px 12px; white-space: nowrap; background: var(--gqai-canvas-soft); border: 1px solid var(--gqai-hairline); border-left: 3px solid var(--gqai-primary); border-radius: var(--gqai-radius-sm); }
+        .inline summary :global(.usage-meter) { width: auto; }
+        .inline summary::after { margin-left: 4px; }
+        .inline ul { position: absolute; right: 0; top: calc(100% + 8px); z-index: 40; width: min(560px, calc(100vw - 32px)); margin: 0; padding: 16px 16px 16px 32px; background: var(--gqai-canvas); border: 1px solid var(--gqai-hairline); border-radius: var(--gqai-radius-md); box-shadow: var(--gqai-shadow-2); }
+        @media (max-width: 767px) {
+          .inline ul { position: static; width: auto; margin-top: 8px; box-shadow: none; }
+          .inline summary { white-space: normal; flex-wrap: wrap; }
+        }
       `}</style>
     </details>
   );

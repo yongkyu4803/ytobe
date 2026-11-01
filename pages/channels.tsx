@@ -55,6 +55,7 @@ export default function ChannelExplorePage() {
   const [error, setError] = useState('');
   const [topicCounts, setTopicCounts] = useState<TopicCount[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebounced({ subMin, subMax, videoMin, videoMax, query: query.trim() }), 400);
@@ -101,6 +102,7 @@ export default function ChannelExplorePage() {
   const reset = () => { setPeriod(''); setSort('views'); setSubMin(''); setSubMax(''); setVideoMin(''); setVideoMax(''); setCountries([]); setTopics([]); setQuery(''); };
   const periodLabel = PERIODS.find(p => p.value === period)?.label;
   const closeModal = useCallback(() => setModalOpen(false), []);
+  const activeFilters = [period, subMin || subMax, videoMin || videoMax, countries.length, topics.length].filter(Boolean).length;
 
   return (
     <Layout>
@@ -109,15 +111,18 @@ export default function ChannelExplorePage() {
         <meta name="description" content="수집한 채널을 조회수 증감, 구독자, 국가, 카테고리로 찾습니다" />
       </Head>
 
-      <div className="page-heading">
-        <h2 className="display-6 fw-bold text-primary mb-2">채널 탐색</h2>
-        <p className="lead text-muted mb-0">수집한 채널을 조회수 증감, 구독자, 영상 수, 국가, 카테고리로 찾습니다.</p>
+      <div className="page-heading explore-head">
+        <h2 className="fw-bold text-primary">채널 탐색</h2>
+        <p className="text-muted">수집한 채널을 조회수 증감, 구독자, 영상 수, 국가, 카테고리로 찾습니다.</p>
+        <UsageLimitNotice variant="inline" scope="channels" />
       </div>
 
-      <UsageLimitNotice scope="channels" />
-
       <div className="explore-layout">
-        <aside className="filters" aria-label="채널 필터">
+        <button type="button" className="filters-toggle btn btn-outline-secondary" aria-expanded={filtersOpen} aria-controls="channel-filters"
+          onClick={() => setFiltersOpen(v => !v)}>
+          {filtersOpen ? '필터 닫기' : `필터${activeFilters ? ` (${activeFilters}개 적용 중)` : ''}`}
+        </button>
+        <aside id="channel-filters" className={`filters ${filtersOpen ? 'open' : ''}`} aria-label="채널 필터">
           <section>
             <h3>조회수 증감 기준</h3>
             <p className="stale-note">YouTube API 오류로 간혹 오늘 총 조회수가 어제와 같이 갱신되지 않은 상태로 전송됩니다. 이 경우 48시간 이상의 기준을 권장합니다.</p>
@@ -246,8 +251,11 @@ export default function ChannelExplorePage() {
       <CategoryFilterModal open={modalOpen} counts={topicCounts} selected={topics} onApply={setTopics} onClose={closeModal} />
 
       <style jsx>{`
+        .explore-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin: -24px 0 20px; }
+        .explore-head h2 { margin: 0 !important; font-size: 26px; line-height: 1.2; }
+        .explore-head p { flex: 1 1 280px; margin: 0; font-size: 14px; }
         .explore-layout { display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 24px; align-items: start; }
-        .filters { position: sticky; top: 140px; display: grid; gap: 24px; padding: 20px; border: 1px solid var(--gqai-hairline); border-radius: var(--gqai-radius-lg); background: var(--gqai-canvas); }
+        .filters { position: sticky; top: 88px; display: grid; gap: 24px; padding: 20px; border: 1px solid var(--gqai-hairline); border-radius: var(--gqai-radius-lg); background: var(--gqai-canvas); }
         .filters h3 { margin: 0 0 10px; font-size: 15px; font-weight: 600; }
         .stale-note { margin: 0 0 10px; padding-left: 8px; color: var(--gqai-ink-secondary); border-left: 2px solid var(--gqai-primary); font-size: 12px; line-height: 1.6; }
         .hint { margin: 8px 0 0; color: var(--gqai-ink-mute); font-size: 12px; }
@@ -278,9 +286,12 @@ export default function ChannelExplorePage() {
         .delta.down { color: #c2410c; font-weight: 600; }
         .delta.muted { color: var(--gqai-ink-mute); font-size: 12px; }
         .more { display: flex; justify-content: center; padding: 16px; border-top: 1px solid var(--gqai-hairline-cool); }
+        .filters-toggle { display: none; }
         @media (max-width: 991px) {
-          .explore-layout { grid-template-columns: minmax(0, 1fr); }
-          .filters { position: static; }
+          .explore-layout { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+          .filters { position: static; display: none; }
+          .filters.open { display: grid; }
+          .filters-toggle { display: block; width: 100%; }
         }
       `}</style>
     </Layout>
