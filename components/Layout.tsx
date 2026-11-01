@@ -17,9 +17,7 @@ export default function Layout({ children }: { children: ReactNode }) {
       <a className="skip-link" href="#main-content">본문으로 이동</a>
       <header className="app-header">
         <div className="app-container header-inner">
-          <Link href="/" className="brand" aria-label="GQAI YouTube Analytics 홈">
-            <img className="gqai-navbar-logo" src="/brand/gqai-logo.svg" alt="GQAI" />
-            <span className="brand-separator" aria-hidden="true" />
+          <Link href="/" className="brand" aria-label="YouTube Analytics 홈">
             <span><span className="brand-title">YouTube Analytics</span><span className="brand-description">인기 동영상 검색 및 성과 분석</span></span>
           </Link>
           <NotificationDropdown />

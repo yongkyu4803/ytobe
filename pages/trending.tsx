@@ -252,7 +252,7 @@ export default function TrendingPage() {
       <Head>
         <title>인기 추천 - YouTube Analytics</title>
         <meta name="description" content="YouTube 인기 급상승 동영상과 카테고리별 트렌딩 콘텐츠를 확인하세요." />
-        <link rel="icon" href="/brand/gq-icon.svg" type="image/svg+xml" />
+        <link rel="icon" href="/favicon.ico" />
       </Head>
 
       <div className="page-heading">

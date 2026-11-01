@@ -307,14 +307,13 @@ export default function Home() {
         <Head>
           <title>YouTube Analytics - 로그인</title>
           <meta name="description" content="YouTube Analytics 접근을 위한 인증이 필요합니다." />
-          <link rel="icon" href="/brand/gq-icon.svg" type="image/svg+xml" />
+          <link rel="icon" href="/favicon.ico" />
         </Head>
 
         <div className="d-flex justify-content-center align-items-center min-vh-100">
           <div className="card auth-card">
             <div className="card-body">
               <div className="page-heading">
-                <img className="auth-logo" src="/brand/gqai-logo.svg" alt="GQAI" />
                 <h2 className="text-primary fw-bold mb-2">YouTube Analytics</h2>
                 <p className="text-muted">접근하려면 비밀번호를 입력하세요</p>
               </div>
@@ -361,7 +360,7 @@ export default function Home() {
       <Head>
         <title>키워드 검색 - YouTube Analytics</title>
         <meta name="description" content="키워드로 YouTube 인기 동영상을 검색하고 성과를 분석하세요." />
-        <link rel="icon" href="/brand/gq-icon.svg" type="image/svg+xml" />
+        <link rel="icon" href="/favicon.ico" />
       </Head>
 
       <div className="page-heading">
