@@ -1,5 +1,6 @@
 :root {
   --gqai-primary: #3ecf8e;
+  --gqai-accent: #a78bfa;
   --gqai-primary-deep: #24b47e;
   --gqai-primary-soft: #4ade80;
 
@@ -19,7 +20,7 @@
   --gqai-ink-faint: #b2b2b2;
   --gqai-on-dark: #ffffff;
 
-  --gqai-font-sans: "Inter", "Noto Sans KR", sans-serif;
+  --gqai-font-sans: "KIMM", sans-serif;
   --gqai-font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
   --gqai-space-1: 4px;

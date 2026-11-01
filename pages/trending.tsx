@@ -252,7 +252,7 @@ export default function TrendingPage() {
       <Head>
         <title>인기 추천 - YouTube Analytics</title>
         <meta name="description" content="YouTube 인기 급상승 동영상과 카테고리별 트렌딩 콘텐츠를 확인하세요." />
-        <link rel="icon" href="/favicon.ico" />
+        <link rel="icon" href="/brand/gq-icon.svg" type="image/svg+xml" />
       </Head>
 
       <div className="page-heading">
@@ -315,7 +315,7 @@ export default function TrendingPage() {
           <div className="d-flex justify-content-end mb-3">
             <div className="bg-light rounded-pill px-3 py-2 border">
               <small className="text-muted">
-                <span className="text-primary fw-semibold">📊 성과지표</span>: 구독자 수 대비 조회수 비율 
+                <span className="text-primary fw-semibold">성과지표</span>: 구독자 수 대비 조회수 비율
                 <span className="text-muted mx-2">•</span>
                 <span className="text-info fw-semibold">💬 참여율</span>: 댓글 수 대비 좋아요 수 비율
               </small>

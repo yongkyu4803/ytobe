@@ -243,12 +243,12 @@ export default function FavoritesPage() {
 
       {favoriteChannels.length === 0 ? (
         <div className="text-center py-5">
-          <div style={{ fontSize: '5rem', opacity: 0.2 }}>⭐</div>
+          <div className="text-muted mb-3"><GqaiIcon name="content-archive" size={48} /></div>
           <h4 className="text-muted mt-3">
             {selectedFolderId ? '이 폴더에 채널이 없습니다' : '즐겨찾기에 등록된 채널이 없습니다'}
           </h4>
           <p className="text-muted">
-            위에서 채널 주소나 이름으로 추가하거나, 검색·추천 페이지에서 채널 옆의 ⭐ 버튼을 누르세요
+            위에서 채널 주소나 이름으로 추가하거나, 검색·추천 페이지에서 채널 옆의 즐겨찾기 버튼을 누르세요
           </p>
         </div>
       ) : (
@@ -302,7 +302,7 @@ export default function FavoritesPage() {
                           }}
                           title="폴더 이동"
                         >
-                          📁
+                          <GqaiIcon name="content-archive" size={20} />
                         </button>
                         <FavoriteButton
                           channelId={channel.channelId}

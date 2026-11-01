@@ -1,3 +1,6 @@
+/* KIMM: 한국기계연구원 (2022), 공공누리 제1유형. https://www.kimm.re.kr/webfont */
+@font-face { font-family: "KIMM"; src: url("/fonts/KIMM_Light.woff2") format("woff2"); font-weight: 300 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "KIMM"; src: url("/fonts/KIMM_Bold.woff2") format("woff2"); font-weight: 500 900; font-style: normal; font-display: swap; }
 /* GQAI tokens also bridge the existing Bootstrap component vocabulary. */
 :root {
   color-scheme: light;
@@ -112,3 +115,23 @@ h1, h2, h3, p { word-break: keep-all; overflow-wrap: anywhere; }
 .search-empty h3 { margin-top: 20px; font-size: 20px; }
 .search-empty p { font-size: 14px; }
 .badge.bg-primary { background: var(--gqai-canvas-soft) !important; }
+
+.gqai-navbar-logo { width: 110px; height: auto; flex-shrink: 0; }
+.brand { gap: 16px; min-width: 0; }
+.brand-separator { width: 1px; height: 20px; background: var(--gqai-hairline); flex-shrink: 0; }
+.auth-logo { width: 110px; height: auto; margin-bottom: 28px; }
+.app-nav .gqai-icon { width: 24px; height: 24px; }
+.app-nav a { min-height: 44px; }
+@media (max-width: 767px) {
+  .gqai-navbar-logo { width: 95px; }
+  .brand { gap: 12px; }
+  .brand-separator { height: 18px; }
+  .brand-title { font-size: 15px; }
+  .brand-description { display: none; }
+  .app-nav { flex-wrap: nowrap; overflow-x: auto; }
+  .app-nav a { white-space: nowrap; font-size: 14px; }
+}
+@media (max-width: 380px) {
+  .brand-title { font-size: 13px; }
+  .header-inner { gap: 8px; }
+}

@@ -18,8 +18,9 @@ export default function Layout({ children }: { children: ReactNode }) {
       <a className="skip-link" href="#main-content">본문으로 이동</a>
       <header className="app-header">
         <div className="app-container header-inner">
-          <Link href="/" className="brand" aria-label="YouTube Analytics 홈">
-            <span className="brand-mark"><GqaiIcon name="content-data-dashboard" size={28} /></span>
+          <Link href="/" className="brand" aria-label="GQAI YouTube Analytics 홈">
+            <img className="gqai-navbar-logo" src="/brand/gqai-logo.svg" alt="GQAI" />
+            <span className="brand-separator" aria-hidden="true" />
             <span><span className="brand-title">YouTube Analytics</span><span className="brand-description">인기 동영상 검색 및 성과 분석</span></span>
           </Link>
           <NotificationDropdown />
@@ -35,7 +36,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         </nav>
       </header>
       <main id="main-content" className="app-container app-main">{children}</main>
-      <footer className="app-footer"><div className="app-container footer-inner"><span>YouTube Analytics</span><small>Powered by YouTube Data API v3</small></div></footer>
+      <footer className="app-footer"><div className="app-container footer-inner"><span>YouTube Analytics</span><small>Powered by YouTube Data API v3 · <a href="https://www.kimm.re.kr/webfont" target="_blank" rel="noreferrer">서체 출처: 한국기계연구원 (2022), 공공누리 제1유형</a></small></div></footer>
     </div>
   );
 }

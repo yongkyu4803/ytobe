@@ -73,7 +73,7 @@ export default function NotificationDropdown() {
         aria-label="알림"
         aria-expanded={showDropdown}
       >
-        <GqaiIcon name="reaction-attention" size={24} />
+        <GqaiIcon name="status-info" size={24} />
         {unreadCount > 0 && (
           <span
             className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
