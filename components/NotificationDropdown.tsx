@@ -114,7 +114,7 @@ export default function NotificationDropdown() {
                     onClick={handleMarkAllAsRead}
                     title="모두 읽음으로 표시"
                   >
-                    ✓ 모두 읽음
+                    모두 읽음
                   </button>
                 )}
                 {notifications.length > 0 && (
@@ -123,7 +123,7 @@ export default function NotificationDropdown() {
                     onClick={handleClearAll}
                     title="모든 알림 삭제"
                   >
-                    🗑️
+                    전체 삭제
                   </button>
                 )}
               </div>
@@ -136,7 +136,7 @@ export default function NotificationDropdown() {
             >
               {notifications.length === 0 ? (
                 <div className="text-center py-5 text-muted">
-                  <div style={{ fontSize: '3rem', opacity: 0.3 }}>🔕</div>
+
                   <p className="mb-0 mt-2">새로운 알림이 없습니다</p>
                 </div>
               ) : (

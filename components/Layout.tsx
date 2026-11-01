@@ -2,13 +2,12 @@ import { ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import NotificationDropdown from './NotificationDropdown';
-import GqaiIcon from './GqaiIcon';
 
 const navigation = [
-  { href: '/', label: '키워드 검색', icon: 'action-search' },
-  { href: '/trending', label: '인기 추천', icon: 'content-data-dashboard' },
-  { href: '/favorites', label: '즐겨찾기', icon: 'content-archive' },
-  { href: '/rising', label: '급상승 영상', icon: 'content-analysis-report' },
+  { href: '/', label: '키워드 검색' },
+  { href: '/trending', label: '인기 추천' },
+  { href: '/favorites', label: '즐겨찾기' },
+  { href: '/rising', label: '급상승 영상' },
 ];
 
 export default function Layout({ children }: { children: ReactNode }) {
@@ -29,7 +28,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           <ul className="app-nav">
             {navigation.map(item => <li key={item.href}>
               <Link href={item.href} className={router.pathname === item.href ? 'active' : ''} aria-current={router.pathname === item.href ? 'page' : undefined}>
-                <GqaiIcon name={item.icon} />{item.label}
+                {item.label}
               </Link>
             </li>)}
           </ul>

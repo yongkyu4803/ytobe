@@ -243,7 +243,7 @@ export default function FavoritesPage() {
 
       {favoriteChannels.length === 0 ? (
         <div className="text-center py-5">
-          <div className="text-muted mb-3"><GqaiIcon name="content-archive" size={48} /></div>
+
           <h4 className="text-muted mt-3">
             {selectedFolderId ? '이 폴더에 채널이 없습니다' : '즐겨찾기에 등록된 채널이 없습니다'}
           </h4>
@@ -302,7 +302,7 @@ export default function FavoritesPage() {
                           }}
                           title="폴더 이동"
                         >
-                          <GqaiIcon name="content-archive" size={20} />
+
                         </button>
                         <FavoriteButton
                           channelId={channel.channelId}
@@ -389,7 +389,7 @@ export default function FavoritesPage() {
             ) : (
               <div className="card shadow-sm">
                 <div className="card-body text-center py-5">
-                  <div style={{ fontSize: '4rem', opacity: 0.2 }}>📺</div>
+
                   <h5 className="text-muted mt-3">왼쪽에서 채널을 선택하세요</h5>
                   <p className="text-muted">선택한 채널의 최신 영상을 확인할 수 있습니다</p>
                 </div>
@@ -435,7 +435,7 @@ export default function FavoritesPage() {
                       className="list-group-item list-group-item-action"
                       onClick={() => handleMoveChannel(movingChannelId, null)}
                     >
-                      <span className="me-2">📂</span>
+
                       <strong>미분류</strong>
                     </button>
                     {folders.map((folder) => (
@@ -444,7 +444,7 @@ export default function FavoritesPage() {
                         className="list-group-item list-group-item-action"
                         onClick={() => handleMoveChannel(movingChannelId, folder.id)}
                       >
-                        <span className="me-2">{folder.icon}</span>
+
                         <strong>{folder.name}</strong>
                         {folder.description && (
                           <small className="d-block text-muted">{folder.description}</small>

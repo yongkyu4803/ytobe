@@ -117,14 +117,14 @@ export default function TrendingPage() {
   const [viewMode, setViewMode] = useState<'category' | 'smart'>('category');
 
   const categories = [
-    { id: 'all', name: '🔥 전체 급상승', icon: '🔥' },
-    { id: '10', name: '🎵 음악', icon: '🎵' },
-    { id: '20', name: '🎮 게임', icon: '🎮' },
-    { id: '24', name: '📺 엔터테인먼트', icon: '📺' },
-    { id: '25', name: '📰 뉴스/정치', icon: '📰' },
-    { id: '26', name: '🍳 요리/라이프', icon: '🍳' },
-    { id: '22', name: '👥 인물/블로그', icon: '👥' },
-    { id: '27', name: '🎓 교육', icon: '🎓' },
+    { id: 'all', name: '전체 급상승' },
+    { id: '10', name: '음악' },
+    { id: '20', name: '게임' },
+    { id: '24', name: '엔터테인먼트' },
+    { id: '25', name: '뉴스/정치' },
+    { id: '26', name: '요리/라이프' },
+    { id: '22', name: '인물/블로그' },
+    { id: '27', name: '교육' },
   ];
 
   // 정렬 함수
@@ -205,7 +205,7 @@ export default function TrendingPage() {
 
   // 정렬 표시 아이콘
   const getSortIcon = (field: SortField) => {
-    if (sortField !== field) return ' ↕️';
+    if (sortField !== field) return ' ↕';
     return sortOrder === 'asc' ? ' ↑' : ' ↓';
   };
 
@@ -270,7 +270,7 @@ export default function TrendingPage() {
               aria-pressed={viewMode === 'category'}
               onClick={() => setViewMode('category')}
             >
-              📂 카테고리 추천
+               카테고리 추천
             </button>
             <button
               type="button"
@@ -278,7 +278,7 @@ export default function TrendingPage() {
               aria-pressed={viewMode === 'smart'}
               onClick={() => setViewMode('smart')}
             >
-              🤖 AI 스마트 추천
+               AI 스마트 추천
             </button>
           </div>
         </div>
@@ -317,7 +317,7 @@ export default function TrendingPage() {
               <small className="text-muted">
                 <span className="text-primary fw-semibold">성과지표</span>: 구독자 수 대비 조회수 비율
                 <span className="text-muted mx-2">•</span>
-                <span className="text-info fw-semibold">💬 참여율</span>: 댓글 수 대비 좋아요 수 비율
+                <span className="text-info fw-semibold"> 참여율</span>: 댓글 수 대비 좋아요 수 비율
               </small>
             </div>
           </div>

@@ -122,7 +122,6 @@ export default function FolderManager({ onSelectFolder, selectedFolderId, refres
     resetForm();
   };
 
-  const commonIcons = ['📁', '📂', '🎬', '🎥', '📺', '🎭', '🎪', '🎨', '🎵', '🎮', '⭐', '🔥', '💡', '📚', '🏆'];
   const commonColors = [
     '#6c757d', '#dc3545', '#fd7e14', '#ffc107', '#28a745',
     '#20c997', '#17a2b8', '#007bff', '#6610f2', '#e83e8c'
@@ -137,7 +136,7 @@ export default function FolderManager({ onSelectFolder, selectedFolderId, refres
             className={`btn ${!selectedFolderId ? 'btn-primary' : 'btn-outline-secondary'}`}
             onClick={() => onSelectFolder(null)}
           >
-            📚 전체
+            전체
             <span className="badge bg-light text-dark ms-2">
               {totalCount}
             </span>
@@ -153,7 +152,7 @@ export default function FolderManager({ onSelectFolder, selectedFolderId, refres
                 onClick={() => onSelectFolder(folder.id)}
                 title={folder.description || folder.name}
               >
-                {folder.icon} {folder.name}
+                {folder.name}
                 <span
                   className="badge ms-2"
                   style={{
@@ -182,7 +181,7 @@ export default function FolderManager({ onSelectFolder, selectedFolderId, refres
                       openEditModal(folder);
                     }}
                   >
-                    ✏️ 수정
+                    수정
                   </button>
                 </li>
                 <li>
@@ -193,7 +192,7 @@ export default function FolderManager({ onSelectFolder, selectedFolderId, refres
                       handleDeleteFolder(folder.id);
                     }}
                   >
-                    🗑️ 삭제
+                    삭제
                   </button>
                 </li>
               </ul>
@@ -255,29 +254,6 @@ export default function FolderManager({ onSelectFolder, selectedFolderId, refres
                       value={newFolderDescription}
                       onChange={(e) => setNewFolderDescription(e.target.value)}
                       placeholder="폴더에 대한 간단한 설명"
-                    />
-                  </div>
-                  <div className="mb-3">
-                    <label className="form-label">아이콘</label>
-                    <div className="d-flex gap-2 mb-2 flex-wrap">
-                      {commonIcons.map((icon) => (
-                        <button
-                          key={icon}
-                          type="button"
-                          className={`btn ${newFolderIcon === icon ? 'btn-primary' : 'btn-outline-secondary'}`}
-                          onClick={() => setNewFolderIcon(icon)}
-                          style={{ fontSize: '1.5rem', padding: '0.25rem 0.75rem' }}
-                        >
-                          {icon}
-                        </button>
-                      ))}
-                    </div>
-                    <input
-                      type="text"
-                      className="form-control"
-                      value={newFolderIcon}
-                      onChange={(e) => setNewFolderIcon(e.target.value)}
-                      placeholder="이모지 입력"
                     />
                   </div>
                   <div className="mb-3">

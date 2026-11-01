@@ -1,6 +1,5 @@
 /* KIMM: 한국기계연구원 (2022), 공공누리 제1유형. https://www.kimm.re.kr/webfont */
-@font-face { font-family: "KIMM"; src: url("/fonts/KIMM_Light.woff2") format("woff2"); font-weight: 300 400; font-style: normal; font-display: swap; }
-@font-face { font-family: "KIMM"; src: url("/fonts/KIMM_Bold.woff2") format("woff2"); font-weight: 500 900; font-style: normal; font-display: swap; }
+@font-face { font-family: "KIMM"; src: url("/fonts/KIMM_Bold.woff2") format("woff2"); font-weight: 700; font-style: normal; font-display: swap; }
 /* GQAI tokens also bridge the existing Bootstrap component vocabulary. */
 :root {
   color-scheme: light;
@@ -135,3 +134,6 @@ h1, h2, h3, p { word-break: keep-all; overflow-wrap: anywhere; }
   .brand-title { font-size: 13px; }
   .header-inner { gap: 8px; }
 }
+
+/* KIMM is reserved for page titles; UI labels and reading text use the body stack. */
+.page-heading h2, .rising-heading h1 { font-family: var(--gqai-font-display); font-weight: 700 !important; }

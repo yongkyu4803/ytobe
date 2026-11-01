@@ -225,7 +225,7 @@ export default function Home() {
 
   // 정렬 표시 아이콘
   const getSortIcon = (field: SortField) => {
-    if (sortField !== field) return ' ↕️';
+    if (sortField !== field) return ' ↕';
     return sortOrder === 'asc' ? ' ↑' : ' ↓';
   };
 
@@ -516,7 +516,7 @@ export default function Home() {
               <small className="text-muted">
                 <span className="text-primary fw-semibold">성과지표</span>: 구독자 수 대비 조회수 비율
                 <span className="text-muted mx-2">•</span>
-                <span className="text-info fw-semibold">💬 참여율</span>: 댓글 수 대비 좋아요 수 비율
+                <span className="text-info fw-semibold"> 참여율</span>: 댓글 수 대비 좋아요 수 비율
               </small>
             </div>
           </div>

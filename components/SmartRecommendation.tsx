@@ -104,28 +104,28 @@ const SmartRecommendation: React.FC<SmartRecommendationProps> = ({
   const smartRecommendations = [
     {
       id: 'time-based',
-      title: '🕐 시간대별 맞춤',
+      title: '시간대별 맞춤',
       description: SmartRecommendationEngine.getTimeBasedDescription(),
       action: handleTimeBasedRecommendation,
       color: 'primary'
     },
     {
       id: 'keyword-combo',
-      title: '🎯 키워드 조합',
+      title: '키워드 조합',
       description: '다양한 트렌드 키워드 기반 큐레이션',
       action: handleKeywordCombination,
       color: 'success'
     },
     {
       id: 'hidden-gems',
-      title: '💎 숨은 보석',
+      title: '숨은 보석',
       description: '참여율 높은 중소 채널 발굴',
       action: handleHiddenGems,
       color: 'warning'
     },
     {
       id: 'predicted-rising',
-      title: '📈 급상승 예측',
+      title: '급상승 예측',
       description: '24시간 내 빠른 성장세 동영상',
       action: handlePredictedRising,
       color: 'info'
@@ -135,7 +135,7 @@ const SmartRecommendation: React.FC<SmartRecommendationProps> = ({
   return (
     <div className="mb-4">
       <div className="mb-3">
-        <h5 className="mb-2">🤖 AI 스마트 추천</h5>
+        <h5 className="mb-2"> AI 스마트 추천</h5>
         <p className="text-muted small mb-3">
           고급 알고리즘으로 개인화된 추천을 제공합니다. 시간대, 트렌드, 참여율을 분석하여 최적의 콘텐츠를 찾아드립니다.
         </p>
@@ -175,14 +175,14 @@ const SmartRecommendation: React.FC<SmartRecommendationProps> = ({
       {lastRecommendation && (
         <div className="alert alert-success mt-3 py-2">
           <small>
-            <strong>✅ 최근 추천:</strong> {lastRecommendation}
+            <strong> 최근 추천:</strong> {lastRecommendation}
           </small>
         </div>
       )}
 
       <div className="mt-3">
         <small className="text-muted">
-          💡 <strong>팁:</strong> 시간대별 추천은 현재 시간({new Date().getHours()}시)에 최적화되어 있습니다. 
+           <strong>팁:</strong> 시간대별 추천은 현재 시간({new Date().getHours()}시)에 최적화되어 있습니다.
           다른 시간대에 다시 시도해보세요!
         </small>
       </div>
