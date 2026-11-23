@@ -13,7 +13,7 @@ type Tab = 'top' | 'mine';
 type Range = 1 | 7;
 
 interface KeywordRow {
-  keyword: string; view_gain: string | number | null; video_count?: string | number; channel_count?: number;
+  keyword: string; view_gain: string | number | null; video_count?: string | number | null; channel_count?: number | null;
   series: SeriesPoint[] | null; latest_day?: string;
 }
 
@@ -142,7 +142,7 @@ export default function KeywordsPage() {
                   <th scope="col">순위</th><th scope="col">키워드</th>
                   <th scope="col" className="num">{range === 1 ? '24시간' : '7일'} 소비량</th>
                   <th scope="col">일별 흐름 (최근 최대 14일)</th>
-                  <th scope="col" className="num">영상·채널</th>
+                  <th scope="col" className="num" title="기간 중 조회수가 측정된 서로 다른 영상 수 · 채널 수">영상·채널</th>
                   <th scope="col"><span className="visually-hidden">저장</span></th>
                 </tr>
               </thead>
@@ -153,7 +153,7 @@ export default function KeywordsPage() {
                     <td><Link className="kw" href={`/keywords/${encodeURIComponent(row.keyword)}`}>{row.keyword} <GqaiIcon name="action-external-link" size={14} /></Link></td>
                     <td className="num gain">{row.view_gain === null || row.view_gain === undefined ? <span className="muted">집계 없음</span> : `${formatMetric(String(row.view_gain))}회`}</td>
                     <td><Sparkline series={row.series} /></td>
-                    <td className="num muted">{row.video_count !== undefined ? `${Number(row.video_count).toLocaleString('ko-KR')} · ${row.channel_count ?? '-'}` : '–'}</td>
+                    <td className="num muted">{row.video_count != null ? `${Number(row.video_count).toLocaleString('ko-KR')} · ${row.channel_count ?? '-'}` : '–'}</td>
                     <td>
                       <button type="button" className="star" aria-pressed={saved.includes(row.keyword)}
                         aria-label={saved.includes(row.keyword) ? `${row.keyword} 저장 해제` : `${row.keyword} 저장`} onClick={() => toggleSave(row.keyword)}>

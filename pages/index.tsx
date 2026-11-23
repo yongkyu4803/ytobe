@@ -1,4 +1,5 @@
 import { formatMetric } from '../utils/metrics';
+import { engagementRate, formatDuration, viewSubscriberRatio } from '../utils/videoMetrics';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import Head from 'next/head';
@@ -39,17 +40,6 @@ interface Video {
 // 숫자를 천 단위 콤마와 '만', '억' 단위로 포맷팅하는 함수
 const formatNumber = formatMetric;
 
-// 영상 길이를 포맷팅하는 함수
-const formatDuration = (seconds: number): string => {
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  const remainingSeconds = seconds % 60;
-
-  if (hours > 0) {
-    return `${hours}:${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
-  }
-  return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-};
 
 // 게시일을 실제 날짜로 포맷팅하는 함수
 const formatPublishedAt = (publishedAt: string): string => {
@@ -63,49 +53,7 @@ const formatPublishedAt = (publishedAt: string): string => {
   return `${year}-${month}-${day} ${hours}:${minutes}`;
 };
 
-// 구독자 대비 조회수 비율 계산 함수
-const calculateViewSubscriberRatio = (viewCount: string, subscriberCount: string): { ratio: number, level: string, color: string } => {
-  const views = parseInt(viewCount, 10);
-  const subscribers = parseInt(subscriberCount, 10);
 
-  if (subscribers === 0 || isNaN(views) || isNaN(subscribers)) {
-    return { ratio: 0, level: '정보없음', color: 'text-muted' };
-  }
-
-  const ratio = views / subscribers;
-
-  if (ratio >= 5) {
-    return { ratio, level: '매우 높음', color: 'text-success' };
-  } else if (ratio >= 2) {
-    return { ratio, level: '높음', color: 'text-primary' };
-  } else if (ratio >= 0.5) {
-    return { ratio, level: '보통', color: 'text-warning' };
-  } else {
-    return { ratio, level: '낮음', color: 'text-danger' };
-  }
-};
-
-// 참여율 계산 함수 (댓글 수 대비 좋아요 수)
-const calculateEngagementRate = (likeCount: string, commentCount: string): { ratio: number, level: string, color: string } => {
-  const likes = parseInt(likeCount, 10);
-  const comments = parseInt(commentCount, 10);
-
-  if (comments === 0 || isNaN(likes) || isNaN(comments)) {
-    return { ratio: 0, level: '정보없음', color: 'text-muted' };
-  }
-
-  const ratio = likes / comments;
-
-  if (ratio >= 50) {
-    return { ratio, level: '매우 높음', color: 'text-success' };
-  } else if (ratio >= 20) {
-    return { ratio, level: '높음', color: 'text-primary' };
-  } else if (ratio >= 10) {
-    return { ratio, level: '보통', color: 'text-warning' };
-  } else {
-    return { ratio, level: '낮음', color: 'text-danger' };
-  }
-};
 
 type SortField = 'index' | 'title' | 'channelTitle' | 'subscriberCount' | 'publishedAt' | 'duration' | 'viewCount' | 'likeCount' | 'commentCount' | 'viewSubscriberRatio' | 'engagementRate' | 'type';
 type SortOrder = 'asc' | 'desc';
@@ -197,12 +145,12 @@ export default function Home() {
           bValue = parseInt(b.statistics.commentCount || '0', 10);
           break;
         case 'viewSubscriberRatio':
-          aValue = parseInt(a.statistics.viewCount, 10) / parseInt(a.channelStatistics.subscriberCount, 10);
-          bValue = parseInt(b.statistics.viewCount, 10) / parseInt(b.channelStatistics.subscriberCount, 10);
+          aValue = viewSubscriberRatio(a.statistics.viewCount, a.channelStatistics.subscriberCount).value ?? NaN;
+          bValue = viewSubscriberRatio(b.statistics.viewCount, b.channelStatistics.subscriberCount).value ?? NaN;
           break;
         case 'engagementRate':
-          aValue = parseInt(a.statistics.likeCount, 10) / parseInt(a.statistics.commentCount || '1', 10);
-          bValue = parseInt(b.statistics.likeCount, 10) / parseInt(b.statistics.commentCount || '1', 10);
+          aValue = engagementRate(a.statistics.viewCount, a.statistics.likeCount, a.statistics.commentCount).value ?? NaN;
+          bValue = engagementRate(b.statistics.viewCount, b.statistics.likeCount, b.statistics.commentCount).value ?? NaN;
           break;
         case 'type':
           aValue = a.isShorts ? 0 : 1;
@@ -496,7 +444,7 @@ export default function Home() {
               <small className="text-muted">
                 <span className="text-primary fw-semibold">성과지표</span>: 구독자 수 대비 조회수 비율
                 <span className="text-muted mx-2">•</span>
-                <span className="text-info fw-semibold"> 참여율</span>: 댓글 수 대비 좋아요 수 비율
+                <span className="text-info fw-semibold"> 참여율</span>: (좋아요 + 댓글) ÷ 조회수
               </small>
             </div>
           </div>
@@ -606,14 +554,8 @@ export default function Home() {
                   return true;
                 }))
                 .map((video, index) => {
-                  const ratioData = calculateViewSubscriberRatio(
-                    video.statistics.viewCount,
-                    video.channelStatistics.subscriberCount
-                  );
-                  const engagementData = calculateEngagementRate(
-                    video.statistics.likeCount,
-                    video.statistics.commentCount || '0'
-                  );
+                  const ratioData = viewSubscriberRatio(video.statistics.viewCount, video.channelStatistics.subscriberCount);
+                  const engagementData = engagementRate(video.statistics.viewCount, video.statistics.likeCount, video.statistics.commentCount);
                   return (
                     <tr key={video.id}>
                       <td className="text-center">{index + 1}</td>
@@ -684,7 +626,7 @@ export default function Home() {
                         {formatNumber(video.statistics.commentCount)}
                       </td>
                       <td className="text-center fw-bold">
-                        {ratioData.ratio > 0 ? `${ratioData.ratio.toFixed(1)}배` : '계산불가'}
+                        {ratioData.value === null ? '계산불가' : `${ratioData.value < 0.1 ? ratioData.value.toFixed(2) : ratioData.value.toFixed(1)}배`}
                       </td>
                       <td className="text-center">
                         <span className={`badge ${ratioData.color.replace('text-', 'bg-')} bg-opacity-10 ${ratioData.color}`}>
@@ -692,7 +634,7 @@ export default function Home() {
                         </span>
                       </td>
                       <td className="text-center fw-bold">
-                        {engagementData.ratio > 0 ? `${engagementData.ratio.toFixed(1)}배` : '계산불가'}
+                        {engagementData.value === null ? '계산불가' : `${engagementData.value.toFixed(1)}%`}
                       </td>
                       <td className="text-center">
                         <span className={`badge ${engagementData.color.replace('text-', 'bg-')} bg-opacity-10 ${engagementData.color}`}>

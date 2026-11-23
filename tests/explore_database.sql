@@ -112,6 +112,15 @@ BEGIN
     THEN RAISE EXCEPTION 'ranking'; END IF;
   IF (SELECT count(*) FROM public.youtube_app_keyword_videos('먹방',7))<>3 THEN RAISE EXCEPTION 'keyword videos'; END IF;
 
+  -- Multi-day windows count distinct videos/channels, not the sum of daily counts.
+  INSERT INTO public.youtube_app_keyword_daily(keyword,day,view_gain,video_count,channel_count) VALUES('먹방',day0-1,100,3,2);
+  PERFORM public.youtube_app_aggregate_keyword_window(day0,7);
+  IF NOT EXISTS(SELECT 1 FROM public.youtube_app_keyword_ranking(7,100) WHERE keyword='먹방' AND view_gain=490 AND video_count=3 AND channel_count=2)
+    THEN RAISE EXCEPTION 'window distinct counts'; END IF;
+  IF NOT EXISTS(SELECT 1 FROM public.youtube_app_keyword_ranking(1,100) WHERE keyword='먹방' AND view_gain=390 AND video_count=3)
+    THEN RAISE EXCEPTION 'one-day counts'; END IF;
+  DELETE FROM public.youtube_app_keyword_daily WHERE keyword='먹방' AND day=day0-1;
+
   -- Runs: one running per job; quota error pauses the day; units are summed.
   run1:=public.youtube_app_explore_begin('stats');
   IF run1 IS NULL OR public.youtube_app_explore_begin('stats') IS NOT NULL THEN RAISE EXCEPTION 'run lease'; END IF;

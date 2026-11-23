@@ -86,7 +86,8 @@ BEGIN
     VALUES('rising-video',date_trunc('hour',now())-interval '6 hours',now()-interval '6 hours',100),
       ('rising-video',date_trunc('hour',now())-interval '3 hours',now()-interval '3 hours',400);
   IF NOT EXISTS(SELECT 1 FROM public.youtube_app_rising_videos
-    WHERE video_id='rising-video' AND view_delta=300 AND views_per_hour=100 AND observation_count=2) THEN
+    WHERE video_id='rising-video' AND view_delta=300 AND views_per_hour=100 AND observation_count=2
+      AND surge_ratio IS NULL) THEN -- one measured video: no channel baseline
     RAISE EXCEPTION 'rising video metrics missing';
   END IF;
   DELETE FROM public.youtube_app_favorite_channels WHERE channel_id='rising-channel';

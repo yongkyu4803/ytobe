@@ -1,12 +1,12 @@
 import axios from 'axios';
 import { toCount } from './shorts';
+import { engagementRate } from './videoMetrics';
 
-// Hidden like/comment counts are treated as 0; views/subscribers fall back to 0 so ratios stay finite.
+// Missing views/subscribers fall back to 0 so totals and filters stay finite.
 const n = (value: unknown) => toCount(value) ?? 0;
-const engagement = (video: Video) => {
-  const views = n(video.statistics.viewCount);
-  return views > 0 ? (n(video.statistics.likeCount) + n(video.statistics.commentCount)) / views : 0;
-};
+// Same definition as the search table's 참여율; unknown (hidden likes) ranks last.
+const engagement = (video: Video) =>
+  engagementRate(video.statistics.viewCount, video.statistics.likeCount, video.statistics.commentCount).value ?? -1;
 
 interface Video {
   id: string;
@@ -107,7 +107,7 @@ export class SmartRecommendationEngine {
         
         if (videos.length > 0) {
           const totalViews = videos.reduce((sum: number, video: Video) => sum + n(video.statistics.viewCount), 0);
-          const avgEngagement = videos.reduce((sum: number, video: Video) => sum + engagement(video), 0) / videos.length;
+          const avgEngagement = videos.reduce((sum: number, video: Video) => sum + Math.max(0, engagement(video)), 0) / videos.length;
 
           results.push({
             keyword,
