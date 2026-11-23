@@ -25,12 +25,12 @@ export default async function handler(
   if (publishedAfter && (typeof publishedAfter !== 'string' || !Number.isFinite(Date.parse(publishedAfter)))) return res.status(400).json({message:'올바른 날짜가 필요합니다.'});
   try {
     const cached = await getCollectedVideos(channelId,limit,publishedAfter);
-    if(cached) return res.status(200).json(cached);
+    if (cached && (cached.items.length > 0 || req.query.liveIfEmpty !== '1')) return res.status(200).json(cached);
   } catch {
     return res.status(503).json({message:'저장된 영상을 불러오지 못했습니다. 잠시 후 다시 시도하세요.'});
   }
 
-  // First collection is pending: preserve live lookup for a newly added channel.
+  // Fetch from YouTube when no collection exists or the caller opts in to fill an empty preview.
   // API 키 확인
   const apiKey = process.env.YOUTUBE_API_KEY;
 
