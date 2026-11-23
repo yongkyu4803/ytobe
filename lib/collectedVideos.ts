@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { metricText } from '../utils/metrics';
+import { isShortsDuration } from '../utils/shorts';
 
 export async function getCollectedVideos(channelId: string, limit: number, after?: string) {
   const {data:channel,error} = await supabase.from('youtube_app_channels').select('*').eq('channel_id',channelId).maybeSingle();
@@ -16,7 +17,7 @@ export async function getCollectedVideos(channelId: string, limit: number, after
         thumbnails:{medium:{url:v.thumbnail_url || ''}}},
       statistics:{viewCount:metricText(v.view_count),likeCount:metricText(v.like_count),commentCount:metricText(v.comment_count)},
       channelStatistics:{subscriberCount:metricText(channel.subscriber_count)},
-      durationInSeconds:v.duration_seconds,isShorts:v.duration_seconds===null?null:v.duration_seconds<=60,
+      durationInSeconds:v.duration_seconds,isShorts:isShortsDuration(v.duration_seconds),
       collectedAt:v.collected_at,
     })),
     channelInfo:{channelId,channelTitle:channel.title,channelThumbnail:channel.thumbnail_url,subscriberCount:metricText(channel.subscriber_count)},

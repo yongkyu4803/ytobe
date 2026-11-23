@@ -8,10 +8,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 npm run dev      # Start dev server (Turbopack) at http://localhost:3000
 npm run build    # Production build
 npm run start    # Serve production build
-npm run lint     # next lint
+npm run lint     # eslint
+npm run typecheck
+npm test         # node --test tests/*.test.mjs (collector, explore, shorts rules)
+npm run test:db  # DB integration tests in a throwaway PostgreSQL 15 container
 ```
-
-There is no test suite configured in this repo.
 
 ## Architecture
 
@@ -19,14 +20,15 @@ Next.js **Pages Router** app (not App Router) — routes live in `pages/`, API r
 
 ### Data flow
 
-- **YouTube Data API v3** is called only from server-side API routes (`pages/api/youtube.js`, `pages/api/trending.js`, `pages/api/channel-videos.ts`), never directly from the client, to keep `YOUTUBE_API_KEY` server-side. Each of these three routes independently: searches/fetches videos → fetches video statistics/contentDetails → fetches channel statistics → merges results, parses ISO 8601 duration into seconds, and flags videos ≤60s as Shorts (`isShorts`).
+- **YouTube Data API v3** is called only from server-side API routes (`pages/api/youtube.ts`, `pages/api/trending.ts`, `pages/api/channel-videos.ts`), never directly from the client, to keep `YOUTUBE_API_KEY` server-side. The routes share `lib/server/youtube.ts` (`ytGet` with quota-error mapping, `fetchVideos`, `enrichVideos` for channel stats + duration + `isShorts`, a per-instance TTL cache). `youtube` and `trending` require the personal session (`hasValidPersonalSession`) because `search.list` costs 100 of the 10,000 daily units.
+- **Shorts rule** (`utils/shorts.ts`): Shorts may be up to 180s, and the API has no isShorts flag. Live routes request `part=player` with `maxWidth` and treat *vertical and ≤180s* as Shorts (square only ≤60s); DB-collected rows have no dimensions and fall back to duration ≤180s. Keep 180 in sync with `explore.mjs` and the migrations.
+- **Trending categories** (`components/TrendingCategories.tsx` `TRENDING_CATEGORIES`): only categories that have a KR `chart=mostPopular`. 19, 27, 29 return notFound and 22 is nearly empty; `/api/trending` turns a missing chart into an empty `unavailable` result.
 - **Supabase** (`lib/supabase.ts`) is the persistence layer for favorites, folders, and notifications. All reads/writes go through `utils/supabaseFavorites.ts`, which wraps three tables (see `migrations/create_tables.sql`): `youtube_app_favorite_folders`, `youtube_app_favorite_channels`, `youtube_app_video_notifications`. Table names are prefixed `youtube_app_` because the Supabase project is shared across multiple apps.
-- `utils/favoriteStorage.ts` is a **legacy localStorage-based implementation** of the same favorites/notifications interface. It is no longer imported anywhere (`supabaseFavorites.ts` fully replaced it) — treat it as dead code unless reviving offline support.
 
 ### Pages/components
 
-- `pages/index.tsx` — search UI (uses `pages/api/youtube.js`).
-- `pages/trending.tsx` — trending videos by category/region (uses `pages/api/trending.js`), category logic lives in `components/TrendingCategories.tsx`.
+- `pages/index.tsx` — search UI (uses `pages/api/youtube.ts`; date filters are rolling windows: 24h/7d/30d/365d).
+- `pages/trending.tsx` — popular-chart videos by category (uses `pages/api/trending.ts`) with a Shorts/long-form split; category list lives in `components/TrendingCategories.tsx`.
 - `pages/favorites.tsx` — favorite channels grouped by folder, drives `components/FolderManager.tsx` and per-channel notification checks via `pages/api/channel-videos.ts`.
 - `components/FavoriteButton.tsx`, `components/NotificationDropdown.tsx` — read/write through `utils/supabaseFavorites.ts` directly (client components calling Supabase, not API routes).
 - `components/SmartRecommendation.tsx` + `utils/smartRecommendation.ts` — time-of-day-based category recommendation engine (maps hour ranges to YouTube category IDs) that also calls the YouTube API.

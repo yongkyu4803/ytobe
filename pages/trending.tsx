@@ -4,7 +4,7 @@ import axios from 'axios';
 import Head from 'next/head';
 import Layout from '../components/Layout';
 import UsageLimitNotice from '../components/UsageLimitNotice';
-import TrendingCategories from '../components/TrendingCategories';
+import TrendingCategories, { TRENDING_CATEGORIES } from '../components/TrendingCategories';
 import SmartRecommendation from '../components/SmartRecommendation';
 import FavoriteButton from '../components/FavoriteButton';
 
@@ -114,19 +114,15 @@ export default function TrendingPage() {
   const [activeCategory, setActiveCategory] = useState('all');
   const [sortField, setSortField] = useState<SortField>('viewCount');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
-  const [currentSource, setCurrentSource] = useState('전체 급상승');
+  const [currentSource, setCurrentSource] = useState('전체 인기');
   const [viewMode, setViewMode] = useState<'category' | 'smart'>('category');
+  // Category charts are now mostly Shorts, so let the user split them out.
+  const [typeFilter, setTypeFilter] = useState<'all' | 'shorts' | 'longform'>('all');
+  const visibleVideos = videos.filter(video =>
+    typeFilter === 'all' || (typeFilter === 'shorts' ? video.isShorts : !video.isShorts));
+  const shortsCount = videos.filter(video => video.isShorts).length;
 
-  const categories = [
-    { id: 'all', name: '전체 급상승' },
-    { id: '10', name: '음악' },
-    { id: '20', name: '게임' },
-    { id: '24', name: '엔터테인먼트' },
-    { id: '25', name: '뉴스/정치' },
-    { id: '26', name: '요리/라이프' },
-    { id: '22', name: '인물/블로그' },
-    { id: '27', name: '교육' },
-  ];
+  const categories = TRENDING_CATEGORIES;
 
   // 정렬 함수
   const handleSort = (field: SortField) => {
@@ -192,9 +188,9 @@ export default function TrendingPage() {
           return 0;
       }
       
-      if (isNaN(aValue) && isNaN(bValue)) return 0;
-      if (isNaN(aValue)) return 1;
-      if (isNaN(bValue)) return -1;
+      if (Number.isNaN(aValue) && Number.isNaN(bValue)) return 0;
+      if (Number.isNaN(aValue)) return 1;
+      if (Number.isNaN(bValue)) return -1;
       
       if (sortOrder === 'asc') {
         return aValue > bValue ? 1 : aValue < bValue ? -1 : 0;
@@ -218,17 +214,17 @@ export default function TrendingPage() {
     setActiveCategory(categoryId);
 
     try {
-      console.log('Fetching trending videos for category:', categoryId);
-      
-      const response = await axios.get(`/api/trending?category=${categoryId}`);
+      const response = await axios.get('/api/trending', { params: { category: categoryId } });
       setVideos(response.data.items || []);
       setCurrentSource(categories.find(cat => cat.id === categoryId)?.name || '카테고리 추천');
-      
+
       if (!response.data.items || response.data.items.length === 0) {
-        setError('해당 카테고리의 트렌딩 동영상이 없습니다.');
+        setError(response.data.message || '해당 카테고리의 인기 동영상이 없습니다.');
       }
     } catch (err: any) {
-      const message = err.response?.data?.message || '트렌딩 동영상을 불러오는 데 실패했습니다.';
+      const message = err.response?.status === 401
+        ? '로그인이 필요합니다. 검색 화면에서 비밀번호로 로그인한 뒤 다시 열어주세요.'
+        : err.response?.data?.message || '인기 동영상을 불러오는 데 실패했습니다.';
       setError(message);
       console.error(err);
     }
@@ -243,7 +239,7 @@ export default function TrendingPage() {
     setError('');
   };
 
-  // 페이지 로드 시 전체 급상승 동영상 로드
+  // 페이지 로드 시 전체 인기 동영상 로드
   useEffect(() => {
     fetchTrendingVideos('all');
   }, []);
@@ -252,7 +248,7 @@ export default function TrendingPage() {
     <Layout>
       <Head>
         <title>인기 추천 - YouTube Analytics</title>
-        <meta name="description" content="YouTube 인기 급상승 동영상과 카테고리별 트렌딩 콘텐츠를 확인하세요." />
+        <meta name="description" content="YouTube 인기 동영상과 카테고리별 인기 콘텐츠를 확인하세요." />
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
@@ -315,7 +311,20 @@ export default function TrendingPage() {
 
       {videos.length > 0 && (
         <>
-          <div className="d-flex justify-content-end mb-3">
+          <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+            <div className="btn-group btn-group-sm" role="group" aria-label="영상 유형">
+              {([['all', `전체 ${videos.length}`], ['shorts', `쇼츠 ${shortsCount}`], ['longform', `롱폼 ${videos.length - shortsCount}`]] as const).map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  className={`btn ${typeFilter === value ? 'btn-dark' : 'btn-outline-secondary'}`}
+                  aria-pressed={typeFilter === value}
+                  onClick={() => setTypeFilter(value)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
             <div className="bg-light rounded-pill px-3 py-2 border">
               <small className="text-muted">
                 <span className="text-primary fw-semibold">성과지표</span>: 구독자 수 대비 조회수 비율
@@ -414,7 +423,7 @@ export default function TrendingPage() {
                 </tr>
               </thead>
               <tbody>
-                {getSortedVideos(videos).map((video, index) => {
+                {getSortedVideos(visibleVideos).map((video, index) => {
                   const ratioData = calculateViewSubscriberRatio(
                     video.statistics.viewCount, 
                     video.channelStatistics.subscriberCount

@@ -212,9 +212,9 @@ export default function Home() {
           return 0;
       }
 
-      if (isNaN(aValue) && isNaN(bValue)) return 0;
-      if (isNaN(aValue)) return 1;
-      if (isNaN(bValue)) return -1;
+      if (Number.isNaN(aValue) && Number.isNaN(bValue)) return 0;
+      if (Number.isNaN(aValue)) return 1;
+      if (Number.isNaN(bValue)) return -1;
 
       if (sortOrder === 'asc') {
         return aValue > bValue ? 1 : aValue < bValue ? -1 : 0;
@@ -230,28 +230,11 @@ export default function Home() {
     return sortOrder === 'asc' ? ' ↑' : ' ↓';
   };
 
+  // Rolling windows: a calendar "this month" returns almost nothing on the 1st.
   const getPublishedAfterDate = (dateFilter: string): string | null => {
-    const now = new Date();
-    let date: Date;
-
-    switch (dateFilter) {
-      case 'today':
-        date = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        break;
-      case 'week':
-        date = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        break;
-      case 'month':
-        date = new Date(now.getFullYear(), now.getMonth(), 1);
-        break;
-      case 'year':
-        date = new Date(now.getFullYear(), 0, 1);
-        break;
-      default:
-        return null;
-    }
-
-    return date.toISOString();
+    const days: Record<string, number> = { today: 1, week: 7, month: 30, year: 365 };
+    const span = days[dateFilter];
+    return span ? new Date(Date.now() - span * 24 * 60 * 60 * 1000).toISOString() : null;
   };
 
   const performSearch = async (searchQuery: string, currentDateFilter: string) => {
@@ -264,21 +247,16 @@ export default function Home() {
     setVideos([]);
 
     try {
-      let apiUrl = `/api/youtube?query=${searchQuery}`;
-
       const publishedAfter = getPublishedAfterDate(currentDateFilter);
-      if (publishedAfter) {
-        apiUrl += `&publishedAfter=${publishedAfter}`;
-      }
-
-      console.log('Searching with URL:', apiUrl);
-
-      const response = await axios.get(apiUrl);
+      const response = await axios.get('/api/youtube', {
+        params: { query: searchQuery.trim(), ...(publishedAfter ? { publishedAfter } : {}) },
+      });
       setVideos(response.data.items || []);
       if (!response.data.items || response.data.items.length === 0) {
         setError('검색 결과가 없습니다.');
       }
     } catch (err: any) {
+      if (err.response?.status === 401) setIsAuthenticated(false);
       const message = err.response?.data?.message || '영상을 불러오는 데 실패했습니다. API 키 할당량을 확인해주세요.';
       setError(message);
       console.error(err);
@@ -459,10 +437,10 @@ export default function Home() {
                 aria-expanded="false"
               >
                 {dateFilter === 'all' ? '전체 기간' :
-                 dateFilter === 'today' ? '오늘' :
-                 dateFilter === 'week' ? '이번 주' :
-                 dateFilter === 'month' ? '이번 달' :
-                 dateFilter === 'year' ? '올해' : '전체 기간'}
+                 dateFilter === 'today' ? '최근 24시간' :
+                 dateFilter === 'week' ? '최근 7일' :
+                 dateFilter === 'month' ? '최근 30일' :
+                 dateFilter === 'year' ? '최근 1년' : '전체 기간'}
               </button>
               <ul className="dropdown-menu" aria-labelledby="dateFilterDropdown">
                 <li>
@@ -478,7 +456,7 @@ export default function Home() {
                     className={`dropdown-item ${dateFilter === 'today' ? 'active' : ''}`}
                     onClick={() => setDateFilter('today')}
                   >
-                    오늘
+                    최근 24시간
                   </button>
                 </li>
                 <li>
@@ -486,7 +464,7 @@ export default function Home() {
                     className={`dropdown-item ${dateFilter === 'week' ? 'active' : ''}`}
                     onClick={() => setDateFilter('week')}
                   >
-                    이번 주
+                    최근 7일
                   </button>
                 </li>
                 <li>
@@ -494,7 +472,7 @@ export default function Home() {
                     className={`dropdown-item ${dateFilter === 'month' ? 'active' : ''}`}
                     onClick={() => setDateFilter('month')}
                   >
-                    이번 달
+                    최근 30일
                   </button>
                 </li>
                 <li>
@@ -502,7 +480,7 @@ export default function Home() {
                     className={`dropdown-item ${dateFilter === 'year' ? 'active' : ''}`}
                     onClick={() => setDateFilter('year')}
                   >
-                    올해
+                    최근 1년
                   </button>
                 </li>
               </ul>

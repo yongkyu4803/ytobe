@@ -1,4 +1,12 @@
 import axios from 'axios';
+import { toCount } from './shorts';
+
+// Hidden like/comment counts are treated as 0; views/subscribers fall back to 0 so ratios stay finite.
+const n = (value: unknown) => toCount(value) ?? 0;
+const engagement = (video: Video) => {
+  const views = n(video.statistics.viewCount);
+  return views > 0 ? (n(video.statistics.likeCount) + n(video.statistics.commentCount)) / views : 0;
+};
 
 interface Video {
   id: string;
@@ -32,6 +40,8 @@ interface KeywordRecommendation {
   avgEngagement: number;
 }
 
+export { engagement as videoEngagement };
+
 export class SmartRecommendationEngine {
   // 시간대별 추천 카테고리
   static getTimeBasedCategory(): string {
@@ -40,11 +50,11 @@ export class SmartRecommendationEngine {
     if (hour >= 6 && hour < 9) {
       return '25'; // 뉴스/정치 (아침 시간대)
     } else if (hour >= 9 && hour < 12) {
-      return '27'; // 교육 (오전 시간대)
+      return '28'; // 과학기술 (오전 시간대) — 교육(27)은 KR 인기 차트가 없음
     } else if (hour >= 12 && hour < 14) {
-      return '26'; // 요리/라이프 (점심 시간대)
+      return '26'; // 노하우/스타일 (점심 시간대)
     } else if (hour >= 14 && hour < 18) {
-      return '22'; // 인물/블로그 (오후 시간대)
+      return '23'; // 코미디 (오후 시간대) — 인물/블로그(22)는 KR 차트가 거의 비어 있음
     } else if (hour >= 18 && hour < 22) {
       return '24'; // 엔터테인먼트 (저녁 시간대)
     } else if (hour >= 22 || hour < 2) {
@@ -61,11 +71,11 @@ export class SmartRecommendationEngine {
     if (hour >= 6 && hour < 9) {
       return '☀️ 아침 시간대 - 하루를 시작하는 뉴스와 정보';
     } else if (hour >= 9 && hour < 12) {
-      return '📚 오전 시간대 - 학습과 자기계발 콘텐츠';
+      return '📚 오전 시간대 - 과학·기술 정보 콘텐츠';
     } else if (hour >= 12 && hour < 14) {
-      return '🍽️ 점심 시간대 - 요리와 라이프스타일';
+      return '🍽️ 점심 시간대 - 요리와 생활 노하우';
     } else if (hour >= 14 && hour < 18) {
-      return '💼 오후 시간대 - 인물과 브이로그';
+      return '💼 오후 시간대 - 가볍게 보는 코미디';
     } else if (hour >= 18 && hour < 22) {
       return '🎭 저녁 시간대 - 엔터테인먼트와 휴식';
     } else if (hour >= 22 || hour < 2) {
@@ -96,15 +106,8 @@ export class SmartRecommendationEngine {
         const videos = response.data.items || [];
         
         if (videos.length > 0) {
-          const totalViews = videos.reduce((sum: number, video: Video) => 
-            sum + parseInt(video.statistics.viewCount, 10), 0);
-          
-          const avgEngagement = videos.reduce((sum: number, video: Video) => {
-            const likes = parseInt(video.statistics.likeCount, 10);
-            const comments = parseInt(video.statistics.commentCount || '0', 10);
-            const views = parseInt(video.statistics.viewCount, 10);
-            return sum + ((likes + comments) / views);
-          }, 0) / videos.length;
+          const totalViews = videos.reduce((sum: number, video: Video) => sum + n(video.statistics.viewCount), 0);
+          const avgEngagement = videos.reduce((sum: number, video: Video) => sum + engagement(video), 0) / videos.length;
 
           results.push({
             keyword,
@@ -153,24 +156,12 @@ export class SmartRecommendationEngine {
       // 참여율 기준으로 정렬 (좋아요 + 댓글) / 조회수
       const sortedByEngagement = allVideos
         .filter(video => {
-          const views = parseInt(video.statistics.viewCount, 10);
-          const subscribers = parseInt(video.channelStatistics.subscriberCount, 10);
+          const views = n(video.statistics.viewCount);
+          const subscribers = n(video.channelStatistics.subscriberCount);
           // 중간 규모 채널 (1만~50만 구독자) 필터링
           return views > 1000 && subscribers >= 10000 && subscribers <= 500000;
         })
-        .sort((a, b) => {
-          const engagementA = (
-            parseInt(a.statistics.likeCount, 10) + 
-            parseInt(a.statistics.commentCount || '0', 10)
-          ) / parseInt(a.statistics.viewCount, 10);
-          
-          const engagementB = (
-            parseInt(b.statistics.likeCount, 10) + 
-            parseInt(b.statistics.commentCount || '0', 10)
-          ) / parseInt(b.statistics.viewCount, 10);
-          
-          return engagementB - engagementA;
-        });
+        .sort((a, b) => engagement(b) - engagement(a));
 
       // 중복 제거 (채널 기준)
       const uniqueChannels = new Set();
@@ -213,7 +204,7 @@ export class SmartRecommendationEngine {
       const scoredVideos: ScoredVideo[] = videos.map((video: Video) => {
         const publishedTime = new Date(video.snippet.publishedAt).getTime();
         const hoursOld = (Date.now() - publishedTime) / (1000 * 60 * 60);
-        const viewCount = parseInt(video.statistics.viewCount, 10);
+        const viewCount = n(video.statistics.viewCount);
         const viewsPerHour = viewCount / Math.max(hoursOld, 1);
         
         return {

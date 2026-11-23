@@ -1,6 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import axios from 'axios';
 import { getCollectedVideos } from '../../lib/collectedVideos';
+import { parseDuration, PLAYER_MAX_WIDTH, VIDEO_PARTS } from '../../lib/server/youtube';
+import { isShortsVideo } from '../../utils/shorts';
 
 interface ChannelVideosRequest {
   channelId: string;
@@ -72,32 +74,20 @@ export default async function handler(
     if (!videoIds.length) return res.status(200).json({ source: 'youtube', collectedAt: new Date().toISOString(), items: [] });
 
     const videosResponse = await axios.get('https://www.googleapis.com/youtube/v3/videos', {
-      params: { part: 'snippet,statistics,contentDetails', id: videoIds.join(','), key: apiKey },
+      params: { part: VIDEO_PARTS, id: videoIds.join(','), maxWidth: PLAYER_MAX_WIDTH, key: apiKey },
       timeout: 12000,
     });
     const videoDetails = (videosResponse.data.items || []).filter((video: {snippet?: {publishedAt?: string}}) =>
       !publishedAfter || Date.parse(video.snippet?.publishedAt || '') > Date.parse(publishedAfter)
     ).slice(0, limit);
 
-    const combinedDetails = videoDetails.map((video: any) => {
-      // 영상 길이를 초 단위로 변환
-      const parseDuration = (duration: string) => {
-        const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
-        if (!match) return 0;
-        const hours = parseInt(match[1] || '0');
-        const minutes = parseInt(match[2] || '0');
-        const seconds = parseInt(match[3] || '0');
-        return hours * 3600 + minutes * 60 + seconds;
-      };
-
-      const durationInSeconds = parseDuration(video.contentDetails.duration);
-      const isShorts = durationInSeconds <= 60;
-
+    const combinedDetails = videoDetails.map(({ player, ...video }: any) => {
+      const durationInSeconds = parseDuration(video.contentDetails?.duration);
       return {
         ...video,
         channelStatistics,
         channelSnippet,
-        isShorts,
+        isShorts: isShortsVideo(durationInSeconds, player?.embedWidth, player?.embedHeight) === true,
         durationInSeconds,
       };
     });

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { SmartRecommendationEngine } from '../utils/smartRecommendation';
+import { SmartRecommendationEngine, videoEngagement } from '../utils/smartRecommendation';
 
 interface Video {
   id: string;
@@ -45,9 +45,10 @@ const SmartRecommendation: React.FC<SmartRecommendationProps> = ({
       const category = SmartRecommendationEngine.getTimeBasedCategory();
       const description = SmartRecommendationEngine.getTimeBasedDescription();
       
-      const response = await fetch(`/api/trending?category=${category}`);
+      const response = await fetch(`/api/trending?category=${encodeURIComponent(category)}`);
       const data = await response.json();
-      
+      if (!response.ok) throw new Error(data.message || '시간대별 추천을 불러오지 못했습니다.');
+
       onVideosLoad(data.items || [], `시간대별 맞춤 (${description})`);
       setLastRecommendation(`시간대별 맞춤 추천 적용됨: ${description}`);
     } catch (error) {
@@ -63,11 +64,7 @@ const SmartRecommendation: React.FC<SmartRecommendationProps> = ({
       
       // 모든 키워드의 동영상을 합치고 참여율 순으로 정렬
       const allVideos = recommendations.flatMap(rec => rec.videos);
-      const sortedVideos = allVideos.sort((a, b) => {
-        const engagementA = (parseInt(a.statistics.likeCount, 10) + parseInt(a.statistics.commentCount || '0', 10)) / parseInt(a.statistics.viewCount, 10);
-        const engagementB = (parseInt(b.statistics.likeCount, 10) + parseInt(b.statistics.commentCount || '0', 10)) / parseInt(b.statistics.viewCount, 10);
-        return engagementB - engagementA;
-      });
+      const sortedVideos = allVideos.sort((a, b) => videoEngagement(b) - videoEngagement(a));
 
       onVideosLoad(sortedVideos.slice(0, 30), '키워드 조합 추천');
       setLastRecommendation(`키워드 조합 추천 적용됨: ${recommendations.map(r => r.keyword).join(', ')}`);
