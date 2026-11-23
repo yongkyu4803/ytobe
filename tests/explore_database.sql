@@ -62,6 +62,32 @@ BEGIN
   DELETE FROM public.youtube_app_channel_metric_snapshots WHERE channel_id='UCanomaly0000000000000000';
   DELETE FROM public.youtube_app_channels WHERE channel_id='UCanomaly0000000000000000';
 
+  -- Country inference: regions merge across registrations; language beats discovery; official stays official.
+  PERFORM public.youtube_app_explore_register(jsonb_build_array(
+    jsonb_build_object('channel_id','UC'||repeat('e',22),'title','E','regions',jsonb_build_array('jp')),
+    jsonb_build_object('channel_id','UC'||repeat('f',22),'title','Some Band','regions',jsonb_build_array('US')),
+    jsonb_build_object('channel_id','UC'||repeat('g',22),'title','G','regions',jsonb_build_array('JP')),
+    jsonb_build_object('channel_id','UC'||repeat('h',22),'title','H','regions','not-an-array')),'chart',100000);
+  PERFORM public.youtube_app_explore_register(jsonb_build_array(
+    jsonb_build_object('channel_id','UC'||repeat('e',22),'title','E','regions',jsonb_build_array('KR'))),'search',100000);
+  IF (SELECT discovered_regions FROM public.youtube_app_channels WHERE channel_id='UC'||repeat('e',22))<>ARRAY['JP','KR']
+    THEN RAISE EXCEPTION 'region merge'; END IF;
+  PERFORM public.youtube_app_explore_save_stats(jsonb_build_array(
+    jsonb_build_object('channel_id','UC'||repeat('e',22),'title','E','subscriber_count','5000','view_count','1','video_count','1','hidden_subscriber',false),
+    jsonb_build_object('channel_id','UC'||repeat('f',22),'title','Some Band','subscriber_count','5000','view_count','1','video_count','1','hidden_subscriber',false),
+    jsonb_build_object('channel_id','UC'||repeat('g',22),'title','G','subscriber_count','5000','view_count','1','video_count','1','hidden_subscriber',false,'lang_hint','ko'),
+    jsonb_build_object('channel_id','UC'||repeat('h',22),'title','쯔양','subscriber_count','5000','view_count','1','video_count','1','hidden_subscriber',false,'country','KR')),'{}',1000);
+  IF NOT EXISTS(SELECT 1 FROM public.youtube_app_channels WHERE channel_id='UC'||repeat('e',22) AND country_inferred IS NULL AND country_source IS NULL)
+    OR NOT EXISTS(SELECT 1 FROM public.youtube_app_channels WHERE channel_id='UC'||repeat('f',22) AND country_inferred='US' AND country_source='discovery')
+    OR NOT EXISTS(SELECT 1 FROM public.youtube_app_channels WHERE channel_id='UC'||repeat('g',22) AND country_inferred='KR' AND country_source='language')
+    OR NOT EXISTS(SELECT 1 FROM public.youtube_app_channels WHERE channel_id='UC'||repeat('h',22) AND country='KR' AND country_inferred IS NULL AND country_source='official')
+    THEN RAISE EXCEPTION 'country inference'; END IF;
+  IF NOT EXISTS(SELECT 1 FROM public.youtube_app_search_channels(p_countries=>ARRAY['KR'],p_query=>'G') WHERE country IS NULL AND country_inferred='KR')
+    OR EXISTS(SELECT 1 FROM public.youtube_app_search_channels(p_countries=>ARRAY['OTHER'],p_query=>'Some Band'))
+    THEN RAISE EXCEPTION 'search by effective country'; END IF;
+  DELETE FROM public.youtube_app_channel_metric_snapshots WHERE channel_id IN ('UC'||repeat('e',22),'UC'||repeat('f',22),'UC'||repeat('g',22),'UC'||repeat('h',22));
+  DELETE FROM public.youtube_app_channels WHERE channel_id IN ('UC'||repeat('e',22),'UC'||repeat('f',22),'UC'||repeat('g',22),'UC'||repeat('h',22));
+
   -- Topic counts include unclassified.
   INSERT INTO public.youtube_app_channels(channel_id,title,explore_status) VALUES(d,'D','active');
   IF NOT EXISTS(SELECT 1 FROM public.youtube_app_topic_counts() WHERE topic_id='Food' AND channel_count=1)

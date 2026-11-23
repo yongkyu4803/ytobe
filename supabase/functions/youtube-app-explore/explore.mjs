@@ -1,7 +1,7 @@
 // Explore collector: channel pool discovery, daily channel stats, KR Shorts tracking.
 // Shared by the Edge Function and offline tests; all external IO is injected.
 import {metric,durationSeconds,youtubeClient,CollectionError} from '../_shared/youtube.mjs';
-import {topicIds,countryCode,videoTags} from '../_shared/channel.mjs';
+import {topicIds,countryCode,videoTags,languageCode,scriptHint} from '../_shared/channel.mjs';
 import {extractKeywords} from '../_shared/keywords.mjs';
 
 // Daily quota budget (10,000 units; web search/trending calls are not logged and need headroom).
@@ -77,6 +77,8 @@ export function channelRow(raw) {
     subscriber_count:hidden ? null : metric(raw.statistics?.subscriberCount),
     view_count:metric(raw.statistics?.viewCount), video_count:metric(raw.statistics?.videoCount),
     hidden_subscriber:hidden, country:countryCode(raw.snippet?.country), topic_ids:topicIds(raw.topicDetails?.topicCategories),
+    default_language:languageCode(raw.snippet?.defaultLanguage),
+    lang_hint:scriptHint(`${raw.snippet?.title || ''}\n${raw.snippet?.description || ''}`),
   };
 }
 
@@ -91,6 +93,14 @@ export function videoRow(v) {
   };
 }
 
+// Remembers every region whose chart/search surfaced a channel (evidence for country inference).
+function remember(map, id, region, row) {
+  const entry = map.get(id) || {...row, regions:[]};
+  if (!entry.regions.includes(region)) entry.regions.push(region);
+  if (!entry.thumbnail_url && row.thumbnail_url) entry.thumbnail_url = row.thumbnail_url;
+  map.set(id, entry);
+}
+
 async function discover(db, yt, ctx) {
   const chart = new Map();
   let categoriesSkipped = 0;
@@ -98,13 +108,13 @@ async function discover(db, yt, ctx) {
     let pageToken;
     for (let page = 0; page < 4; page++) {
       const res = await yt.get('videos', {part:'snippet', chart:'mostPopular', regionCode:region.code, maxResults:'50', ...(pageToken ? {pageToken} : {})});
-      for (const v of res.items) if (v.snippet?.channelId) chart.set(v.snippet.channelId, {channel_id:v.snippet.channelId, title:v.snippet.channelTitle, thumbnail_url:null});
+      for (const v of res.items) if (v.snippet?.channelId) remember(chart, v.snippet.channelId, region.code, {channel_id:v.snippet.channelId, title:v.snippet.channelTitle, thumbnail_url:null});
       pageToken = res.nextPageToken; if (!pageToken) break;
     }
     for (const category of CHART_CATEGORIES) {
       try {
         const res = await yt.get('videos', {part:'snippet', chart:'mostPopular', regionCode:region.code, videoCategoryId:category, maxResults:'50'});
-        for (const v of res.items) if (v.snippet?.channelId) chart.set(v.snippet.channelId, {channel_id:v.snippet.channelId, title:v.snippet.channelTitle, thumbnail_url:null});
+        for (const v of res.items) if (v.snippet?.channelId) remember(chart, v.snippet.channelId, region.code, {channel_id:v.snippet.channelId, title:v.snippet.channelTitle, thumbnail_url:null});
       } catch (error) {
         if (isQuotaError(error)) throw error;
         categoriesSkipped++; // Not every category has a chart in every region.
@@ -121,7 +131,7 @@ async function discover(db, yt, ctx) {
     const res = await yt.get('search', {part:'snippet', type:'channel', q, regionCode:region.code, relevanceLanguage:region.lang, order:'viewCount', maxResults:'50'});
     for (const item of res.items) {
       const id = item.id?.channelId || item.snippet?.channelId;
-      if (id) searched.set(id, {channel_id:id, title:item.snippet?.title || item.snippet?.channelTitle, thumbnail_url:thumb(item.snippet)});
+      if (id) remember(searched, id, region.code, {channel_id:id, title:item.snippet?.title || item.snippet?.channelTitle, thumbnail_url:thumb(item.snippet)});
     }
   }
   for (const part of chunk([...searched.values()], 500)) registered += await rpc(db, 'youtube_app_explore_register', {p_channels:part, p_via:'search', p_cap:POOL_CAP}) || 0;

@@ -126,3 +126,31 @@ test('shorts keeps only new <=180s videos from the scanned channel',async()=>{
   assert.deepEqual(saved.map(v=>v.video_id),['short000001']);assert.equal(out.newShorts,1);
   assert.deepEqual(db.calls.find(c=>c[0]==='youtube_app_explore_finish_shorts_channels')[1].p_ids,[ch]);
 });
+
+test('country evidence: script hint and language code',async()=>{
+  const {scriptHint,languageCode}=await import('../supabase/functions/_shared/channel.mjs');
+  assert.equal(scriptHint('문베일 스튜디오 Moonveil Studio'),'ko');
+  assert.equal(scriptHint('DJほっぺの釣りアウトドア'),'ja');
+  assert.equal(scriptHint('BossMan Dlow - Topic'),null);
+  assert.equal(scriptHint('中国频道'),null); // Han-only is ambiguous (Chinese or Japanese)
+  assert.equal(scriptHint('가'),null);
+  assert.equal(languageCode('ko'),'ko');assert.equal(languageCode('zh-Hant'),'zh-hant');assert.equal(languageCode('<x>'),null);
+  const row=channelRow({id:'UCxxxxxxxxxxxxxxxxxxxxxx',snippet:{title:'tzuyang',description:'먹방 유튜버 쯔양입니다',defaultLanguage:'ko'},statistics:{viewCount:'1'}});
+  assert.equal(row.lang_hint,'ko');assert.equal(row.default_language,'ko');assert.equal(row.country,null);
+});
+
+test('discover records every region that surfaced a channel',async()=>{
+  const registered=[];
+  const db=fakeDb({youtube_app_explore_register:args=>{registered.push(args);return 0;}});
+  const ch='UC'+'a'.repeat(22);
+  const fetcher=async url=>{
+    const u=new URL(url);
+    if(u.pathname.endsWith('/search'))return Response.json({items:[]});
+    const region=u.searchParams.get('regionCode');
+    return Response.json({items:region==='US'?[]:[{snippet:{channelId:ch,channelTitle:'t'}}]});
+  };
+  const out=await runExplore(db,'k','discover',{fetcher});
+  assert.equal(out.status,'success');
+  const sent=registered.find(r=>r.p_via==='chart').p_channels.find(c=>c.channel_id===ch);
+  assert.deepEqual(sent.regions,['KR','JP']);
+});

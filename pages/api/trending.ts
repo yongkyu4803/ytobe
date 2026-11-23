@@ -26,7 +26,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
       const videos = data.items || [];
       const items = await enrichVideos(videos);
-      await registerDiscoveredChannels(videos);
+      await registerDiscoveredChannels(videos, regionCode);
       // Keep YouTube's chart order (popularity rank), not a pure view-count sort.
       return items.map((item, index) => ({ ...item, chartRank: index + 1 }));
     });

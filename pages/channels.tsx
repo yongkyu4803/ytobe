@@ -15,6 +15,7 @@ type Sort = 'views' | 'subscribers';
 
 interface ChannelRow {
   channel_id: string; title: string; thumbnail_url: string | null; country: string | null; topic_ids: string[];
+  country_inferred?: string | null; country_source?: 'official' | 'language' | 'discovery' | null;
   subscriber_count: string | number | null; hidden_subscriber: boolean | null; video_count: string | number | null;
   view_count: string | number | null; view_delta: string | number | null; views_stale: boolean; view_delta_suspect?: boolean; deltas_at: string | null;
   is_favorite: boolean; total_count: string | number;
@@ -40,6 +41,12 @@ function rangeLabel(label: string, min: number | null, max: number | null) {
   if (max !== null) return `${label} ${formatMetric(max)} 이하`;
   return null;
 }
+
+// The channel owner left YouTube's country setting empty; these are our estimates.
+const INFERENCE_NOTE = {
+  language: '채널이 국가를 설정하지 않아 채널 언어 설정과 이름·설명의 문자(한글/가나)로 추정했습니다.',
+  discovery: '채널이 국가를 설정하지 않아 이 채널이 발견된 국가별 인기 차트·검색으로 추정했습니다.',
+} as const;
 
 function deltaText(row: ChannelRow, period: Period) {
   if (!period) return null;
@@ -229,7 +236,7 @@ export default function ChannelExplorePage() {
             </div>
           </section>
           <section className="wide-filter">
-            <h2>국가</h2>
+            <h2>국가 <small className="filter-note">국가 미설정 채널은 추정 국가 포함</small></h2>
             <div className="choice-row">
               {COUNTRY_OPTIONS.map(c => (
                 <button key={c.value} type="button" className="choice" aria-pressed={countries.includes(c.value)}
@@ -308,7 +315,13 @@ export default function ChannelExplorePage() {
                             </span>
                             <div className="channel-name">
                               <a href={`https://www.youtube.com/channel/${encodeURIComponent(row.channel_id)}`} target="_blank" rel="noopener noreferrer">{row.title}</a>
-                              <small>{[row.country, ...(row.topic_ids.length ? row.topic_ids.slice(0, 2).map(topicLabel) : ['미분류'])].filter(Boolean).join(' · ')}</small>
+                              <small>
+                                {row.country ?? (row.country_inferred && (
+                                  <span className="inferred" title={INFERENCE_NOTE[row.country_source === 'discovery' ? 'discovery' : 'language']}>{row.country_inferred}(추정)</span>
+                                ))}
+                                {(row.country || row.country_inferred) && ' · '}
+                                {(row.topic_ids.length ? row.topic_ids.slice(0, 2).map(topicLabel) : ['미분류']).join(' · ')}
+                              </small>
                             </div>
                           </div>
                         </td>
@@ -412,6 +425,8 @@ export default function ChannelExplorePage() {
         .metric-note:first-child { margin: 0 0 3px; }
         .delta.up { color: var(--gqai-primary); }
         .delta.down { color: #ffad9b; }
+        .filter-note { margin-left: 6px; font-size: 12px; font-weight: 400; opacity: .7; }
+        .inferred { border-bottom: 1px dotted currentColor; cursor: help; }
         .delta.muted { color: var(--panel-muted); font-size: 12px; font-weight: 400; }
         .avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
         .favorite :global(.btn) { justify-content: center; min-width: 36px; min-height: 36px; padding: 4px; color: var(--panel-muted); border-color: var(--panel-line); background: transparent; }
