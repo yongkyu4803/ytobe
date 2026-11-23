@@ -16,7 +16,7 @@ type Sort = 'views' | 'subscribers';
 interface ChannelRow {
   channel_id: string; title: string; thumbnail_url: string | null; country: string | null; topic_ids: string[];
   subscriber_count: string | number | null; hidden_subscriber: boolean | null; video_count: string | number | null;
-  view_count: string | number | null; view_delta: string | number | null; views_stale: boolean; deltas_at: string | null;
+  view_count: string | number | null; view_delta: string | number | null; views_stale: boolean; view_delta_suspect?: boolean; deltas_at: string | null;
   is_favorite: boolean; total_count: string | number;
 }
 
@@ -44,6 +44,8 @@ function rangeLabel(label: string, min: number | null, max: number | null) {
 function deltaText(row: ChannelRow, period: Period) {
   if (!period) return null;
   if (period === '1d' && row.views_stale) return { text: '갱신 안 됨', tone: 'muted' };
+  // Total views dropped or jumped abnormally inside the window (deleted videos or a YouTube count glitch).
+  if (row.view_delta_suspect) return { text: '비교 불가', tone: 'muted', title: '기간 중 총조회수가 비정상적으로 줄거나 급변해 증가량을 계산하지 않았습니다 (영상 삭제·YouTube 집계 오류).' };
   if (row.view_delta === null || row.view_delta === undefined) return { text: '이력 수집 중', tone: 'muted' };
   const n = Number(row.view_delta);
   if (n < 0) return { text: `-${formatMetric(String(Math.abs(n)))}`, tone: 'down' };
@@ -319,7 +321,7 @@ export default function ChannelExplorePage() {
                           {delta ? (
                             <>
                               <small className="metric-note">{periodLabel} 기준</small>
-                              <span className={`delta ${delta.tone}`}>{delta.text}</span>
+                              <span className={`delta ${delta.tone}`} title={"title" in delta ? delta.title : undefined}>{delta.text}</span>
                               <small className="metric-note">총 {formatMetric(row.view_count)}</small>
                             </>
                           ) : formatMetric(row.view_count)}

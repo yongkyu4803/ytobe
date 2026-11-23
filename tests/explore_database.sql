@@ -46,6 +46,22 @@ BEGIN
   IF NOT EXISTS(SELECT 1 FROM public.youtube_app_channels WHERE channel_id=a AND views_stale AND view_delta_1d IS NULL AND view_delta_2d=300)
     THEN RAISE EXCEPTION 'stale detection'; END IF;
 
+  -- A broken total (YouTube served 900 instead of ~1M, then recovered) must not become a period gain.
+  INSERT INTO public.youtube_app_channels(channel_id,title,explore_status) VALUES('UCanomaly0000000000000000','Anomaly','active');
+  INSERT INTO public.youtube_app_channel_metric_snapshots(channel_id,bucket_at,collected_at,view_count) VALUES
+    ('UCanomaly0000000000000000',today_bucket-interval '3 days',now()-interval '3 days',1000000),
+    ('UCanomaly0000000000000000',today_bucket-interval '2 days',now()-interval '2 days',900),
+    ('UCanomaly0000000000000000',today_bucket-interval '1 day',now()-interval '1 day',1000500),
+    ('UCanomaly0000000000000000',today_bucket,now(),1001000);
+  PERFORM public.youtube_app_refresh_channel_deltas(ARRAY['UCanomaly0000000000000000']);
+  IF NOT EXISTS(SELECT 1 FROM public.youtube_app_channels WHERE channel_id='UCanomaly0000000000000000'
+    AND view_delta_1d=500 AND view_delta_2d IS NULL AND view_anomaly_days=1) THEN RAISE EXCEPTION 'anomaly window'; END IF;
+  IF NOT EXISTS(SELECT 1 FROM public.youtube_app_search_channels(p_period=>'2d',p_query=>'Anomaly') WHERE view_delta_suspect AND view_delta IS NULL)
+    OR EXISTS(SELECT 1 FROM public.youtube_app_search_channels(p_period=>'1d',p_query=>'Anomaly') WHERE view_delta_suspect)
+    THEN RAISE EXCEPTION 'anomaly flag in search'; END IF;
+  DELETE FROM public.youtube_app_channel_metric_snapshots WHERE channel_id='UCanomaly0000000000000000';
+  DELETE FROM public.youtube_app_channels WHERE channel_id='UCanomaly0000000000000000';
+
   -- Topic counts include unclassified.
   INSERT INTO public.youtube_app_channels(channel_id,title,explore_status) VALUES(d,'D','active');
   IF NOT EXISTS(SELECT 1 FROM public.youtube_app_topic_counts() WHERE topic_id='Food' AND channel_count=1)
